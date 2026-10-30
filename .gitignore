@@ -1,0 +1,12 @@
+# builds
+/gocraft
+/gocraft-server
+*.test
+
+# logs of the vanilla client, with the account's name
+/logs/
+*.log
+*.log.gz
+
+# local screenshots and captures
+*.png
