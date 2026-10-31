@@ -14,12 +14,10 @@ func (g *game) entityTarget() (int32, bool) {
 		best, bestD, found = p.eid, d, true
 	}
 	for _, e := range n.ents {
-		h := e.height()
-		if h == 0 { // a marker armor stand has no box to hit
+		if e.obj != 0 || e.height() == 0 { // arrows and hooks cannot be pointed at; a marker armor stand has no box
 			continue
 		}
-		b := aabb{e.pos.sub(vec3{0.3, 0, 0.3}), e.pos.add(vec3{0.3, h, 0.3})}
-		if d, ok := g.rayBoxDist(b); ok && d < bestD {
+		if d, ok := g.rayBoxDist(e.box()); ok && d < bestD {
 			best, bestD, found = e.eid, d, true
 		}
 	}

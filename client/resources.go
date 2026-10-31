@@ -189,6 +189,7 @@ func loadResources(jarPath string, packs []string) (*resources, error) {
 		extra = append(extra, "armor/"+m+"_layer_1", "armor/"+m+"_layer_2")
 	}
 	extra = append(extra, "armor/leather_layer_1_overlay", "armor/leather_layer_2_overlay")
+	extra = append(extra, netMobTextures...)
 	for _, k := range kinds {
 		extra = append(extra, k.tex, k.fur)
 		extra = append(extra, k.texVariants...)

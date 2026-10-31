@@ -168,21 +168,18 @@ func (g *game) mobTarget() (*mob, bool) {
 
 // attackClick is a left click: it hits a mob if one is pointed at, and says whether it did.
 func (g *game) attackClick() bool {
-	m, mobOK := g.mobTarget()
-	p, pd, playerOK := g.playerTarget()
-	if playerOK && mobOK {
-		if md, _ := g.rayBoxDist(m.box()); md < pd { // the nearer of the two takes the click
-			playerOK = false
+	if g.net != nil { // the server's players and mobs: the server decides what the blow does
+		eid, ok := g.entityTarget()
+		if ok {
+			g.attackEntity(eid)
 		}
+		return ok
 	}
-	switch {
-	case playerOK:
-		g.attackPlayer(p)
-	case mobOK:
-		g.attackMob(m)
-	default:
+	m, mobOK := g.mobTarget()
+	if !mobOK {
 		return false
 	}
+	g.attackMob(m)
 	return true
 }
 

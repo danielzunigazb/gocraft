@@ -800,6 +800,9 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 			if p := g.net.remote[eid]; p != nil {
 				p.moveTo(vec3{x, y, z}, yaw, pitch)
 			} else if e := g.net.entity(eid); e != nil {
+				if e.mob != nil {
+					e.mob.look(yaw, pitch)
+				}
 				e.moveTo(vec3{x, y, z})
 			} else if it := g.net.netItem(eid); it != nil {
 				g.moveNetItem(it, vec3{x, y, z})
@@ -825,6 +828,8 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 				case 1: // take damage
 					p.hurt = 10
 				}
+			} else if e := g.net.entity(eid); e != nil && e.mob != nil && anim == 1 {
+				e.mob.m.hurtTime = 10 // performHurtAnimation
 			}
 		}
 	case 0x38: // player list: names, skins, ping, game modes
@@ -898,7 +903,13 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 					ty, tp = yaw, pitch
 				}
 				p.moveTo(t, ty, tp)
-			} else if e := g.net.entity(eid); e != nil && hasMove {
+			} else if e := g.net.entity(eid); e != nil && (hasMove || e.mob != nil) {
+				if e.mob != nil { // the turn goes with the move; a move alone keeps the way it faces now
+					if !hasLook {
+						yaw, pitch = e.mob.yaw, e.mob.pitch
+					}
+					e.mob.look(yaw, pitch)
+				}
 				e.moveTo(e.target.add(vec3{float64(dx), float64(dy), float64(dz)}))
 			} else if it := g.net.netItem(eid); it != nil && hasMove {
 				g.moveNetItem(it, it.srv.add(vec3{float64(dx), float64(dy), float64(dz)}))
@@ -916,6 +927,8 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 				if p.inc == 0 {
 					p.inc = 3
 				}
+			} else if e := g.net.entity(eid); e != nil && e.mob != nil {
+				e.mob.head = head // EntityLivingBase.setRotationYawHead: at once
 			}
 		}
 	case 0x23: // block change
@@ -984,13 +997,14 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 		eid := r.VarInt()
 		kind := r.Byte()
 		x, y, z := float64(r.Int())/32, float64(r.Int())/32, float64(r.Int())/32
-		r.Bytes(3) // yaw, pitch, head pitch
+		yaw, pitch, head := float32(int8(r.Byte()))*360/256, float32(int8(r.Byte()))*360/256, float32(int8(r.Byte()))*360/256
 		r.Bytes(6) // velocity
 		meta, _ := readMeta(r)
 		if r.Err() != nil {
 			return nil
 		}
 		e := &netEntity{eid: eid, kind: kind, pos: vec3{x, y, z}, prev: vec3{x, y, z}, target: vec3{x, y, z}}
+		e.mob = newNetMob(kind, e.pos, yaw, pitch, head)
 		e.apply(meta)
 		return func(g *game) { g.net.addEntity(e) }
 	case 0x0E: // spawn object: a fishing hook, an arrow, an item

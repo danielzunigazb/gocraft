@@ -46,13 +46,16 @@ func (g *game) playerTarget() (*remotePlayer, float32, bool) {
 	return best, bestD, true
 }
 
-// attackPlayer is the click on another player: the server hears of the blow and works out the
-// damage; the client pays what is its own, the slowing of a sprint hit and the weapon's wear.
-func (g *game) attackPlayer(p *remotePlayer) {
+// attackEntity is the click on another player or a mob of the server: the server hears of the blow and
+// works out the damage; the client pays what is its own, the slowing of a sprint hit and the weapon's wear.
+func (g *game) attackEntity(eid int32) {
 	w := newPacket(0x02)
-	w.VarInt(p.eid)
+	w.VarInt(eid)
 	w.VarInt(1) // attack
 	g.net.c.send(w)
+	if g.net.remote[eid] == nil {
+		return // a mob or an armor stand takes no blow on the client (attackEntityFrom is false there): only the server's
+	}
 	if g.sprinting {
 		g.vel[0], g.vel[2] = g.vel[0]*0.6, g.vel[2]*0.6
 		g.setSprinting(false)
@@ -144,6 +147,9 @@ func (g *game) netStatus(eid int32, status byte) {
 	}
 	p := g.net.remote[eid]
 	if p == nil {
+		if e := g.net.entity(eid); e != nil && e.mob != nil {
+			e.mob.status(status)
+		}
 		return
 	}
 	switch status {

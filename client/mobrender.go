@@ -30,51 +30,13 @@ func (g *game) drawMobs() {
 	}
 	partial := g.partial
 	for _, m := range g.mobs {
-		k := m.kind
-		pos := m.prev.add(m.pos.sub(m.prev).scale(float64(partial)))
-		yaw := m.prevYaw + float32(math.Mod(float64(m.yaw-m.prevYaw)+540, 360)-180)*partial
-		age := float32(m.age) + partial
-		ls := m.limbSwing - m.limbAmount*(1-partial)
-		lsa := m.limbAmount
-		rots := k.pose(m, ls, lsa, age, m.headYaw, m.pitch)
-		light := g.world.Light(int32(math.Floor(float64(pos[0]))), int32(math.Floor(float64(pos[1]+0.5))), int32(math.Floor(float64(pos[2]))))
-		tint := [3]uint8{255, 255, 255}
-		if m.hurtTime > 0 || m.dead() {
-			tint = [3]uint8{255, 110, 110}
-		}
-		tilt := float32(0)
-		if m.dead() {
-			f := (float32(m.deathTime) + partial - 1) / 20 * 1.6
-			f = float32(math.Sqrt(math.Max(0, float64(f))))
-			tilt = min(f, 1) * math.Pi / 2
-		}
-		sx, sy := float32(1), float32(1) // its size: spiders, slimes and a creeper about to blow
-		switch {
-		case k.slime:
-			sx = float32(max(m.size, 1))
-			sy = sx
-		case k.scale != 0:
-			sx, sy = k.scale, k.scale
-		case k.id == "Creeper" && m.fuse > 0: // swells as it is about to blow
-			f := float32(m.fuse) / 28
-			f *= f
-			f *= f
-			sx, sy = 1+f*0.4, 1+f*0.1
-		}
-		if m.burning > 0 && m.hurtTime == 0 && !m.dead() {
-			tint = [3]uint8{255, 170, 90}
-		}
-		tex := k.tex
-		if len(k.texVariants) > 0 {
-			tex = k.texVariants[m.colour%len(k.texVariants)]
-		}
-		pos[1] += float64(k.yoff)
-		start := len(groups[tex])
-		groups[tex] = emitModel(groups[tex], k.model, rots, pos, yaw, tilt, tint, light)
-		scaleVerts(groups[tex][start:], pos, sx, sy)
-		if k.fm != nil && !m.sheared {
-			c := fleece[m.colour&15]
-			groups[k.fur] = emitModel(groups[k.fur], k.fm, rots, pos, yaw, tilt, [3]uint8{uint8(int(c[0]) * int(tint[0]) / 255), uint8(int(c[1]) * int(tint[1]) / 255), uint8(int(c[2]) * int(tint[2]) / 255)}, light)
+		g.emitMob(groups, m, partial)
+	}
+	if g.net != nil {
+		for _, e := range g.net.ents {
+			if e.mob != nil && !e.invisible && !g.offScreen(e.pos, 3) {
+				g.emitMob(groups, e.mob.m, partial)
+			}
 		}
 	}
 	if g.net != nil {
@@ -112,6 +74,64 @@ func (g *game) drawMobs() {
 	gl.Disable(gl.BLEND)
 	gl.Enable(gl.CULL_FACE)
 	gl.BindTexture(gl.TEXTURE_2D, g.tex)
+}
+
+// emitMob lays out one mob with its model, between its last tick and this one.
+func (g *game) emitMob(groups map[string][]vertex, m *mob, partial float32) {
+	k := m.kind
+	pos := m.prev.add(m.pos.sub(m.prev).scale(float64(partial)))
+	yaw := m.prevYaw + float32(math.Mod(float64(m.yaw-m.prevYaw)+540, 360)-180)*partial
+	age := float32(m.age) + partial
+	ls := m.limbSwing - m.limbAmount*(1-partial)
+	lsa := m.limbAmount
+	rots := k.pose(m, ls, lsa, age, m.headYaw, m.pitch)
+	light := g.world.Light(int32(math.Floor(float64(pos[0]))), int32(math.Floor(float64(pos[1]+0.5))), int32(math.Floor(float64(pos[2]))))
+	tint := [3]uint8{255, 255, 255}
+	if m.hurtTime > 0 || m.dead() {
+		tint = [3]uint8{255, 110, 110}
+	}
+	tilt := float32(0)
+	if m.dead() {
+		f := (float32(m.deathTime) + partial - 1) / 20 * 1.6
+		f = float32(math.Sqrt(math.Max(0, float64(f))))
+		tilt = min(f, 1) * math.Pi / 2
+	}
+	sx, sy := float32(1), float32(1) // its size: spiders, slimes and a creeper about to blow
+	switch {
+	case k.slime:
+		sx = float32(max(m.size, 1))
+		sy = sx
+	case k.scale != 0:
+		sx, sy = k.scale, k.scale
+	case k.id == "Creeper" && m.fuse > 0: // swells as it is about to blow
+		f := float32(m.fuse) / 28
+		f *= f
+		f *= f
+		sx, sy = 1+f*0.4, 1+f*0.1
+	}
+	if m.burning > 0 && m.hurtTime == 0 && !m.dead() {
+		tint = [3]uint8{255, 170, 90}
+	}
+	tex := k.tex
+	if len(k.texVariants) > 0 {
+		tex = k.texVariants[m.colour%len(k.texVariants)]
+	}
+	if m.tex != "" {
+		tex = m.tex
+	}
+	if m.drawScale != 0 {
+		sx, sy = sx*m.drawScale, sy*m.drawScale
+	}
+	pos[1] += float64(k.yoff)
+	start := len(groups[tex])
+	groups[tex] = emitModel(groups[tex], k.model, rots, pos, yaw, tilt, tint, light)
+	scaleVerts(groups[tex][start:], pos, sx, sy)
+	if k.fm != nil && !m.sheared {
+		c := fleece[m.colour&15]
+		start := len(groups[k.fur])
+		groups[k.fur] = emitModel(groups[k.fur], k.fm, rots, pos, yaw, tilt, [3]uint8{uint8(int(c[0]) * int(tint[0]) / 255), uint8(int(c[1]) * int(tint[1]) / 255), uint8(int(c[2]) * int(tint[2]) / 255)}, light)
+		scaleVerts(groups[k.fur][start:], pos, sx, sy)
+	}
 }
 
 // scaleVerts makes a mob's vertices bigger about its feet: sideways by sx, upwards by sy.

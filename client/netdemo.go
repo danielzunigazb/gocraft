@@ -170,3 +170,30 @@ func (g *game) itemsDemo() {
 	lay := at.add(right.scale(-2.2))
 	g.net.pickups = append(g.net.pickups, &pickupFX{item: itemEntity{net: true, stack: slot{ID: 266, N: 1}, pos: lay, prev: lay}, to: 12, age: 1})
 }
+
+// mobsDemo lines up the server's mobs as metadata makes them: a red lamb, a wither skeleton, a pigman, a
+// librarian, a creeper about to blow, a big slime, a baby zombie, a gold rabbit, a cow and a spider.
+func (g *game) mobsDemo() {
+	g.net.ents = nil
+	f := look(g.yaw, 0)
+	right := vec3{-f[2], 0, f[0]}
+	ground := vec3{0, math.Floor(g.feet[1]) - g.feet[1], 0}
+	face := g.yawDeg() + 180 // towards the camera
+	for i, d := range []struct {
+		kind byte
+		meta map[int]any
+	}{
+		{91, map[int]any{12: -1, 16: 14}}, {51, map[int]any{13: 1}}, {mobPigZombie, nil}, {120, map[int]any{16: 1}},
+		{50, map[int]any{16: 1}}, {55, map[int]any{16: 2}}, {54, map[int]any{12: 1}}, {101, map[int]any{18: 4}}, {92, nil}, {52, nil},
+	} {
+		at := g.feet.add(ground).add(f.scale(5 + float64(i%2)*2)).add(right.scale(float64(i)*1.1 - 5))
+		e := &netEntity{eid: int32(200 + i), kind: d.kind, pos: at, prev: at, target: at}
+		e.mob = newNetMob(d.kind, at, face, 0, face)
+		e.mob.m.yaw, e.mob.m.prevYaw = face, face
+		e.apply(d.meta)
+		if d.kind == 50 {
+			e.mob.m.fuse = 24
+		}
+		g.net.addEntity(e)
+	}
+}

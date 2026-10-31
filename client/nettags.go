@@ -25,6 +25,7 @@ type netEntity struct {
 	invisible    bool
 	small        bool
 	marker       bool
+	mob          *netMob // a mob gocraft has a model for
 }
 
 const (
@@ -34,6 +35,10 @@ const (
 
 // height is the entity's height as the game has it, which is what its name floats over.
 func (e *netEntity) height() float64 {
+	if e.mob != nil {
+		_, h := e.mob.dims()
+		return float64(h)
+	}
 	if e.kind != mobArmorStand {
 		return 1.8
 	}
@@ -63,6 +68,10 @@ func (e *netEntity) moveTo(t vec3) {
 func (g *game) tickEnts() {
 	for _, e := range g.net.ents {
 		e.prev = e.pos
+		if e.mob != nil {
+			tickNetMob(e)
+			continue
+		}
 		if isProjectile(e.obj) {
 			g.tickProjectile(e)
 			e.target = e.pos // the server's next position is relative to where this one is
@@ -133,6 +142,19 @@ func (e *netEntity) apply(m map[int]any) {
 			e.small, e.marker = v&1 != 0, v&16 != 0
 		}
 	}
+	if e.mob != nil {
+		e.mob.apply(m)
+	}
+}
+
+// box is what a click hits: a mob's own box, or a player-sized one for what gocraft has no model for.
+func (e *netEntity) box() aabb {
+	hw := 0.3
+	if e.mob != nil {
+		w, _ := e.mob.dims()
+		hw = float64(w / 2)
+	}
+	return aabb{e.pos.sub(vec3{hw, 0, hw}), e.pos.add(vec3{hw, e.height(), hw})}
 }
 
 func (n *netState) entity(eid int32) *netEntity {

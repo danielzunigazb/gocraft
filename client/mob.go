@@ -49,7 +49,9 @@ type mob struct {
 	onGround, collidedH   bool
 	limbSwing, limbAmount float32
 	age                   int
-	colour                int // sheep: the fleece colour
+	colour                int     // sheep: the fleece colour
+	tex                   string  // a texture other than its kind's (a zombie pigman is drawn as a zombie)
+	drawScale             float32 // how much bigger it is drawn than its model; 0 is 1 (a server's baby, a wither skeleton)
 
 	// what it is doing
 	wanderTicks int
