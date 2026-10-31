@@ -446,7 +446,7 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 		}
 		return func(g *game) {
 			g.net.eid = eid
-			g.creative = mode&3 == 1
+			g.netGameMode(mode)
 			g.net.joined = true
 			g.netDimension(int(d))
 			g.sendClientInfo()
@@ -471,6 +471,7 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 		return func(g *game) {
 			g.flyCap, g.walkCap = fly, walk
 			g.allowFly = flags&4 != 0
+			g.abilFlags = flags & (1 | 8)
 			g.flying = flags&2 != 0
 			if g.flying {
 				g.onGround = false // in the air, as the game has it: a flight that has just begun is not ended by landing
@@ -619,7 +620,7 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 		if r.Err() != nil || reason != 3 {
 			return nil
 		}
-		return func(g *game) { g.creative = int(val)&3 == 1 }
+		return func(g *game) { g.netGameMode(byte(int(val))) }
 	case 0x3F: // plugin message: a server's brand
 		channel := r.String(20)
 		if channel != "MC|Brand" || r.Err() != nil {
@@ -1068,6 +1069,8 @@ func (g *game) connect(addr, name string) error {
 	g.creative, g.flying, g.onGround, g.allowFly = true, false, false, false
 	g.effects = nil
 	g.walkCap, g.flyCap = 0, 0
+	g.abilFlags = 0
+	g.speedsSet, g.sprintTicks = false, 0
 	g.titles = titleState{}
 	g.maxHP, g.absorption, g.xpBar, g.xpLevel, g.air = 0, 0, 0, 0, 300
 	g.pos = vec3{0.5, world.SpawnY + eyeHeight, 0.5}
@@ -1117,12 +1120,27 @@ func (g *game) netDimension(d int) {
 	g.dimn.id = d
 }
 
+// netGameMode is what a game mode from the server does to the player (WorldSettings.GameType.
+// configurePlayerCapabilities): creative may fly and takes no damage, survival and adventure stop flying,
+// a spectator flies. Abilities from the server may change that afterwards.
+func (g *game) netGameMode(mode byte) {
+	switch mode & 7 { // 8 is hardcore
+	case 1:
+		g.creative, g.allowFly, g.abilFlags = true, true, 1|8
+	case 3:
+		g.creative, g.allowFly, g.flying, g.abilFlags = false, true, true, 1
+	default:
+		g.creative, g.allowFly, g.flying, g.abilFlags = false, false, false, 0
+	}
+}
+
 // netRespawn handles a Respawn: the world the player was in is gone. A proxy sends one (twice, with a
 // dummy dimension in between) when it moves the player to another server, and the player's own death
 // is answered by one, so the columns, the other players and the entities all go, and the server then
 // sends the new ones and a position.
 func (g *game) netRespawn(d int, mode byte) {
 	n := g.net
+	g.speedsSet, g.sprintTicks = false, 0 // a new player entity
 	for cp := range n.received {
 		g.forgetMesh(cp)
 	}
@@ -1134,8 +1152,8 @@ func (g *game) netRespawn(d int, mode byte) {
 	g.world.SetLightRules(g.res.light)
 	g.mobs, g.arrows, g.items = nil, nil, nil
 	g.netDimension(d)
-	g.creative = mode&3 == 1
 	g.flying, g.vel, g.fall = false, vec3{}, 0
+	g.netGameMode(mode)
 	g.health, g.food = maxHealth, maxFood
 	if g.screen == screenDead {
 		g.closeScreen()

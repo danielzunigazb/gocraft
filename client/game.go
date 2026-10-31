@@ -84,6 +84,7 @@ type game struct {
 	feet, prevFeet, vel, spawn vec3
 	onGround, flying           bool
 	allowFly                   bool // a server lets the player fly without being in creative mode
+	abilFlags                  byte // the invulnerable (1) and creative (8) abilities the server last gave: echoed back as the game does
 	creative                   bool
 	sneaking                   bool
 	sprinting, collidedH       bool
@@ -91,6 +92,9 @@ type game struct {
 	wasSneak, wasForward       bool
 	jumpTicks                  int
 	sprintToggle, flyToggle    int
+	sprintTicks                int     // ticks until a sprint runs out: it lasts 600 (EntityPlayerSP.sprintingTicksLeft)
+	aiSpeed, jumpFactor        float32 // the speed and air factor the last tick ended with: this tick moves with them
+	speedsSet                  bool    // false until a tick has ended: a new player has no speed yet
 	inv                        [36]slot
 	armor                      [4]slot
 	cursor                     slot
@@ -913,6 +917,7 @@ func (g *game) input() input {
 // applySave makes a save the current world: its chunks, game mode, hotbar, health and spawn.
 func (g *game) applySave(save *anvil.Save) {
 	g.save = save
+	g.speedsSet, g.sprintTicks = false, 0
 	ov := overlayFor(save.Dir)
 	g.loadBlockEntities(ov)
 	g.world = world.NewFrom(func(cp world.ChunkPos) *world.Chunk {

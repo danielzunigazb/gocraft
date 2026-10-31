@@ -636,3 +636,63 @@ func TestStatusBarPackets(t *testing.T) {
 		t.Fatalf("absorption %v air %d", g.absorption, g.air)
 	}
 }
+
+// sentAbilities is the flags of every Player Abilities packet the client sent, in order.
+func sentAbilities(t *testing.T, c *netClient) []byte {
+	t.Helper()
+	var out []byte
+	for {
+		select {
+		case f := <-c.out:
+			id, rd, err := proto.ReadPacket(bufio.NewReader(bytes.NewReader(f)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if id == 0x13 {
+				out = append(out, rd.Byte())
+			}
+		default:
+			return out
+		}
+	}
+}
+
+// Starting or ending a flight tells the server, with the invulnerable and creative bits as the server gave
+// them (C13PacketPlayerAbilities is built from the client's capabilities, which the game mode and S39 set).
+func TestFlightToggleSendsAbilitiesAsTheGame(t *testing.T) {
+	doubleJump := func(g *game) {
+		g.tick(input{jump: true})
+		g.tick(input{})
+		g.tick(input{jump: true})
+		g.tick(input{})
+	}
+	g, c := windowGame(t)
+	g.net.received[world.ChunkPos{X: 0, Z: 0}] = true // the player waits for its column, as in the game
+	decodeFrame(t, joinGame(5, 1, 0), nil)(g)         // creative: may fly, invulnerable
+	sentAbilities(t, c)
+	doubleJump(g)
+	if got := sentAbilities(t, c); len(got) == 0 || got[0] != 1|2|4|8 || !g.flying {
+		t.Fatalf("creative flight: sent %v flying %v, want first 15", got, g.flying)
+	}
+
+	g, c = windowGame(t)
+	g.net.received[world.ChunkPos{X: 0, Z: 0}] = true
+	decodeFrame(t, joinGame(5, 0, 0), nil)(g)
+	if g.creative || g.canFly() || g.abilFlags != 0 {
+		t.Fatalf("survival join: creative %v canFly %v flags %d", g.creative, g.canFly(), g.abilFlags)
+	}
+	decodeFrame(t, abilitiesPacket(1|4), nil)(g) // a lobby: invulnerable and allowed to fly
+	sentAbilities(t, c)
+	doubleJump(g)
+	if got := sentAbilities(t, c); len(got) == 0 || got[0] != 1|2|4 {
+		t.Fatalf("lobby flight: sent %v, want first 7", got)
+	}
+
+	w := newPacket(0x2B) // back to survival: the flight and the permission go, as setGameType does
+	w.Byte(3)
+	w.Float(0)
+	decodeFrame(t, w, nil)(g)
+	if g.flying || g.canFly() || g.abilFlags != 0 {
+		t.Fatalf("survival again: flying %v canFly %v flags %d", g.flying, g.canFly(), g.abilFlags)
+	}
+}

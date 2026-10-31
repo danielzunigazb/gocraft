@@ -28,12 +28,14 @@ var (
 	stepUp      = float64(float32(0.6))  // stepHeight is the float 0.6F
 	ledgeLift   = float64(float32(0.6))  // isOffsetPositionInLiquid(..., motionY + 0.6000000238418579D ...)
 	ledgeHopY   = float64(float32(0.3))  // motionY = 0.30000001192092896D
+	swimUp      = float64(float32(0.04)) // motionY += 0.03999999910593033D, holding jump in a fluid
 	knockPower  = float64(float32(0.4))  // knockBack: float f1 = 0.4F, and the cap 0.4000000059604645D
 )
 
 const (
 	landSpeed     = float32(0.1)  // movement speed attribute
-	sprintBonus   = 0.3           // sprinting adds 30% to it
+	sprintBonus   = 0.3           // the 0.3D that sprinting adds to the air factor (the speed attribute has its own, see sprintAmount)
+	sprintLasts   = 600           // ticks a sprint runs out after (EntityPlayerSP.setSprinting)
 	airFactor     = float32(0.02) // acceleration in the air
 	flySpeed      = float32(0.05)
 	jumpDelay     = 10 // ticks before the next jump may start
@@ -150,18 +152,23 @@ func (g *game) tick(in input) {
 	g.tickActions()
 
 	// EntityPlayerSP.onLivingUpdate: what the keys ask for.
+	if g.sprintTicks > 0 {
+		if g.sprintTicks--; g.sprintTicks == 0 { // a sprint that was never ended runs out
+			g.setSprinting(false)
+		}
+	}
 	if g.sprintToggle > 0 {
 		g.sprintToggle--
 	}
 	if g.flyToggle > 0 {
 		g.flyToggle--
 	}
-	toggled := false
 	if g.canFly() && in.jump && !g.wasJump { // two quick jumps start or stop flying
 		if g.flyToggle == 0 {
 			g.flyToggle = 7
 		} else {
-			g.flying, g.flyToggle, toggled = !g.flying, 0, true
+			g.flying, g.flyToggle = !g.flying, 0
+			g.sendAbilities()
 		}
 	}
 	g.wasJump = in.jump
@@ -170,35 +177,35 @@ func (g *game) tick(in input) {
 	if in.sneak {
 		forward, strafe = forward*0.3, strafe*0.3
 	}
-	if g.blocking || g.bowTicks > 0 { // using an item slows walking to a fifth
+	using := g.usingItem()
+	if using { // using an item slows walking to a fifth, and forgets a first tap of forward
 		forward, strafe = forward*0.2, strafe*0.2
+		g.sprintToggle = 0
 	}
 	wasSneak, wasForward := g.wasSneak, g.wasForward
 	g.wasSneak, g.wasForward = in.sneak, forward >= 0.8
-	canSprint := g.food > 6 || g.creative
-	if g.onGround && !wasSneak && !wasForward && forward >= 0.8 && !g.sprinting && canSprint {
+	_, blind := g.hasEffect(effBlindness)
+	canSprint := g.food > 6 || g.canFly()
+	if g.onGround && !wasSneak && !wasForward && forward >= 0.8 && !g.sprinting && canSprint && !using && !blind {
 		if g.sprintToggle <= 0 && !in.sprint {
 			g.sprintToggle = sprintTapTime
 		} else {
-			g.sprinting = true
+			g.setSprinting(true)
 		}
 	}
-	if !g.sprinting && forward >= 0.8 && canSprint && in.sprint {
-		g.sprinting = true
+	if !g.sprinting && forward >= 0.8 && canSprint && !using && !blind && in.sprint {
+		g.setSprinting(true)
 	}
 	if g.sprinting && (forward < 0.8 || g.collidedH || !canSprint) {
-		g.sprinting = false
+		g.setSprinting(false)
 	}
 
-	if g.onGround && g.flying && !toggled { // landing ends a flight
-		g.flying = false
-	}
 	if g.flying {
 		if in.sneak {
-			g.vel[1] -= float64(flySpeed * 3)
+			g.vel[1] -= float64(g.flySpeedNow() * 3)
 		}
 		if in.jump {
-			g.vel[1] += float64(flySpeed * 3)
+			g.vel[1] += float64(g.flySpeedNow() * 3)
 		}
 	}
 	g.sneaking = in.sneak
@@ -216,7 +223,7 @@ func (g *game) tick(in input) {
 	inLava := g.fluidIn(true)
 	if in.jump {
 		if inWater || inLava {
-			g.vel[1] += 0.04
+			g.vel[1] += swimUp
 		} else if g.onGround && g.jumpTicks == 0 {
 			g.jump()
 			g.jumpTicks = jumpDelay
@@ -226,6 +233,11 @@ func (g *game) tick(in input) {
 	}
 	strafe, forward = strafe*0.98, forward*0.98
 	g.moveWithHeading(strafe, forward, inWater, inLava)
+	g.setMoveSpeeds()           // EntityPlayer.onLivingUpdate: after the move, for the next tick's
+	if g.onGround && g.flying { // landing ends a flight, once the player has moved
+		g.flying = false
+		g.sendAbilities()
+	}
 
 	// EntityPlayer.addMovementStat: every metre walked costs a little, running costs ten times more.
 	if d := float32(math.Hypot(g.feet[0]-g.prevFeet[0], g.feet[2]-g.prevFeet[2])); d > 0 {
@@ -280,10 +292,7 @@ func (g *game) tick(in input) {
 func (g *game) moveWithHeading(strafe, forward float32, inWater, inLava bool) {
 	if g.flying {
 		keep := g.vel[1]
-		factor := flySpeed
-		if g.flyCap > 0 { // and how fast it flies: /flyspeed
-			factor = g.flyCap
-		}
+		factor := g.flySpeedNow()
 		if g.sprinting {
 			factor *= 2
 		}
@@ -291,24 +300,76 @@ func (g *game) moveWithHeading(strafe, forward float32, inWater, inLava bool) {
 		g.vel[1] = keep * 0.6
 		return
 	}
-	factor := airFactor
-	if g.sprinting {
-		factor = float32(float64(airFactor) + float64(airFactor)*sprintBonus)
+	factor := airFactor // a player that has not ended a tick yet has the default
+	if g.speedsSet {
+		factor = g.jumpFactor
 	}
 	g.livingMove(strafe, forward, factor, inWater, inLava)
+}
+
+// flySpeedNow is how fast the player flies: 0.05, or what the server's abilities say.
+func (g *game) flySpeedNow() float32 {
+	if g.flyCap > 0 {
+		return g.flyCap
+	}
+	return flySpeed
+}
+
+// setSprinting is EntityPlayerSP.setSprinting: a sprint is given 600 ticks, and none when it ends.
+func (g *game) setSprinting(on bool) {
+	g.sprinting = on
+	g.sprintTicks = 0
+	if on {
+		g.sprintTicks = sprintLasts
+	}
+}
+
+// setMoveSpeeds is what EntityPlayer.onLivingUpdate does after the player has moved: it keeps the air
+// factor (sprinting adds 30% of it) and the movement speed attribute for the next tick to move with. So a
+// sprint starts to count one tick after it begins, and one tick after it ends.
+func (g *game) setMoveSpeeds() {
+	g.speedsSet = true
+	g.jumpFactor = airFactor
+	if g.sprinting {
+		g.jumpFactor = float32(float64(g.jumpFactor) + float64(airFactor)*sprintBonus)
+	}
+	g.aiSpeed = g.groundSpeed()
+}
+
+// sendAbilities tells a server that the player started or stopped flying (serverbound Player Abilities).
+func (g *game) sendAbilities() {
+	if g.net == nil {
+		return
+	}
+	flags := g.abilFlags & (1 | 8) // invulnerable and creative, as the server last set them (C13PacketPlayerAbilities)
+	if g.flying {
+		flags |= 2
+	}
+	if g.canFly() {
+		flags |= 4
+	}
+	w := newPacket(0x13)
+	w.Byte(flags)
+	w.Float(g.flySpeedNow())
+	w.Float(g.walkSpeedNow())
+	g.net.c.send(w)
+}
+
+// walkSpeedNow is the walking speed of the abilities: 0.1, or what the server set.
+func (g *game) walkSpeedNow() float32 {
+	if g.walkCap > 0 {
+		return g.walkCap
+	}
+	return landSpeed
 }
 
 func (g *game) livingMove(strafe, forward, airMove float32, inWater, inLava bool) {
 	switch {
 	case inWater && !g.flying:
 		y0 := g.feet[1]
-		speed := float32(0.8)
-		if g.sprinting {
-			speed = 0.9
-		}
 		g.moveFlying(strafe, forward, 0.02)
 		g.moveEntity(g.vel[0], g.vel[1], g.vel[2])
-		g.vel[0], g.vel[2] = g.vel[0]*float64(speed), g.vel[2]*float64(speed)
+		g.vel[0], g.vel[2] = g.vel[0]*waterY, g.vel[2]*waterY // 0.8F, sprinting or not (depth strider aside)
 		g.vel[1] = g.vel[1]*waterY - 0.02
 		g.ledgeHop(y0)
 	case inLava && !g.flying:
@@ -325,7 +386,7 @@ func (g *game) livingMove(strafe, forward, airMove float32, inWater, inLava bool
 		f := 0.16277136 / (slip * slip * slip)
 		var friction float32
 		if g.onGround {
-			friction = g.groundSpeed() * f
+			friction = g.aiMoveSpeed() * f
 		} else {
 			friction = airMove
 		}
@@ -347,12 +408,20 @@ func (g *game) livingMove(strafe, forward, airMove float32, inWater, inLava bool
 			}
 		}
 		g.moveEntity(g.vel[0], g.vel[1], g.vel[2])
-		if g.collidedH && ladder {
+		if g.collidedH && g.onLadder() { // asked again: the move may have taken the player off the ladder
 			g.vel[1] = 0.2
 		}
 		g.vel[1] = (g.vel[1] - 0.08) * dragY
 		g.vel[0], g.vel[2] = g.vel[0]*float64(slip), g.vel[2]*float64(slip)
 	}
+}
+
+// aiMoveSpeed is the movement speed the player walks with this tick: the one the last tick ended with.
+func (g *game) aiMoveSpeed() float32 {
+	if !g.speedsSet {
+		return 0
+	}
+	return g.aiSpeed
 }
 
 // ledgeHop is the small jump that lifts a swimmer out of the water onto a ledge.

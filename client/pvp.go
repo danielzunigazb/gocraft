@@ -55,7 +55,7 @@ func (g *game) attackPlayer(p *remotePlayer) {
 	g.net.c.send(w)
 	if g.sprinting {
 		g.vel[0], g.vel[2] = g.vel[0]*0.6, g.vel[2]*0.6
-		g.sprinting = false
+		g.setSprinting(false)
 	}
 	g.exhaust(0.3)
 	if class, _ := toolOf(g.held()); class == "sword" {

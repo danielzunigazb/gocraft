@@ -12,6 +12,7 @@ const (
 	effSpeed     = 1
 	effSlowness  = 2
 	effJump      = 8
+	effBlindness = 15
 	effRegen     = 10
 	effPoison    = 19
 	effWither    = 20
@@ -23,23 +24,31 @@ func (g *game) hasEffect(id int) (potionEffect, bool) {
 	return e, ok
 }
 
-// groundSpeed is the movement speed attribute: 0.1, times 1.2 a level of Speed, times 0.85 a level of
-// Slowness, times 1.3 when sprinting (each modifier multiplies the total, as the attribute's operation 2 does).
+// The amounts of the movement speed modifiers, as the game writes them: floats widened to double.
+const (
+	speedAmount    = 0.20000000298023224  // Speed, a level
+	slownessAmount = -0.15000000596046448 // Slowness, a level
+	sprintAmount   = 0.30000001192092896  // sprinting
+)
+
+// groundSpeed is the movement speed attribute: 0.1, times a level of Speed, of Slowness and of sprinting
+// (each modifier multiplies the total, as the attribute's operation 2 does, in the order the game's set of
+// modifiers lists them: Slowness, sprint, Speed). The game reads it at the end of a tick (setMoveSpeeds).
 func (g *game) groundSpeed() float32 {
 	v := float64(landSpeed)
 	if g.walkCap > 0 { // a server may change how fast the player walks: /walkspeed
 		v = float64(g.walkCap)
 	}
-	if e, ok := g.effects[effSpeed]; ok {
-		v *= 1 + 0.2*float64(e.amp+1)
-	}
 	if e, ok := g.effects[effSlowness]; ok {
-		v *= 1 - 0.15*float64(e.amp+1)
+		v *= 1 + slownessAmount*float64(e.amp+1)
 	}
 	if g.sprinting {
-		v *= 1 + sprintBonus
+		v *= 1 + sprintAmount
 	}
-	return float32(v)
+	if e, ok := g.effects[effSpeed]; ok {
+		v *= 1 + speedAmount*float64(e.amp+1)
+	}
+	return float32(max(v, 0))
 }
 
 // jumpBoost is what Jump Boost adds to a jump: a tenth a level.

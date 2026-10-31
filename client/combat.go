@@ -125,7 +125,7 @@ func (g *game) attackMob(m *mob) bool {
 		m.vel[1] += 0.1
 		m.vel[2] += float64(c * float32(knock) * 0.5)
 		g.vel[0], g.vel[2] = g.vel[0]*0.6, g.vel[2]*0.6
-		g.sprinting = false
+		g.setSprinting(false)
 	}
 	g.exhaust(0.3)
 	if class, _ := toolOf(held); class == "sword" {
