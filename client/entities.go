@@ -26,6 +26,9 @@ type itemEntity struct {
 	pickupDelay int
 	onGround    bool
 	hover       float32 // a random phase for the bobbing
+	net         bool    // the server's: it moves here, but merging, pickup and despawning are the server's to say
+	dead        bool    // a server's item that was destroyed or collected
+	srv         vec3    // a server's item: where the server last put it, exact in 32nds
 }
 
 func itemBox(p vec3) aabb {
@@ -105,7 +108,7 @@ func (g *game) pushOut(e *itemEntity) bool {
 
 // tickItem advances one item by a tick; it reports whether it still exists.
 func (g *game) tickItem(e *itemEntity) bool {
-	if e.stack.empty() {
+	if e.stack.empty() && !e.net { // a server's item may move before its metadata says what it is
 		return false
 	}
 	if e.pickupDelay > 0 {
@@ -166,6 +169,12 @@ func (g *game) mergeItems(e *itemEntity) {
 // tickItems moves every dropped item and lets the player pick up those within reach.
 func (g *game) tickItems() {
 	for _, e := range g.items {
+		if e.net {
+			if !e.dead {
+				g.tickItem(e) // only its motion: the server says when it merges, is taken or goes
+			}
+			continue
+		}
 		cell := [3]int32{int32(e.pos[0]), int32(e.pos[1]), int32(e.pos[2])}
 		alive := g.tickItem(e)
 		moved := cell != [3]int32{int32(e.pos[0]), int32(e.pos[1]), int32(e.pos[2])}
@@ -185,6 +194,12 @@ func (g *game) tickItems() {
 	reach.max = reach.max.add(vec3{1, 0.5, 1})
 	live := g.items[:0]
 	for _, e := range g.items {
+		if e.net {
+			if !e.dead {
+				live = append(live, e)
+			}
+			continue
+		}
 		if !e.stack.empty() && e.pickupDelay == 0 && overlaps(reach, itemBox(e.pos)) {
 			before := e.stack.N
 			e.stack = g.giveSlot(e.stack)
@@ -196,6 +211,7 @@ func (g *game) tickItems() {
 			live = append(live, e)
 		}
 	}
+	clear(g.items[len(live):])
 	g.items = live
 }
 
@@ -238,54 +254,71 @@ func (m *entityMesh) draw(verts []vertex) {
 // as flat pictures, spinning and bobbing as 1.8's do.
 func (g *game) buildItemGeometry(partial float32) (blocks, flat []vertex) {
 	for _, e := range g.items {
+		if e.dead {
+			continue
+		}
 		pos := e.prev.add(e.pos.sub(e.prev).scale(float64(partial)))
-		t := float32(e.age) + partial
-		bob := float32(math.Sin(float64(t/10+e.hover)))*0.1 + 0.1
-		spin := t/20 + e.hover
-		sin, cos := float32(math.Sin(float64(spin))), float32(math.Cos(float64(spin)))
-		l := g.world.Light(int32(math.Floor(float64(pos[0]))), int32(math.Floor(float64(pos[1]+0.2))), int32(math.Floor(float64(pos[2]))))
-		centre := vec3{pos[0], pos[1] + float64(bob) + 0.25, pos[2]}
-		rot := func(x, y, z float32) (float32, float32, float32) { // turn about the vertical axis through the centre
-			return float32(centre[0] + float64(x*cos-z*sin)), float32(centre[1] + float64(y)), float32(centre[2] + float64(x*sin+z*cos))
+		blocks, flat = g.itemGeometry(e, pos, partial, blocks, flat)
+	}
+	if g.net != nil {
+		for _, p := range g.net.pickups {
+			blocks, flat = g.itemGeometry(&p.item, g.pickupAt(p, partial), partial, blocks, flat)
 		}
-		copies := min(int(e.stack.N+15)/16, 4) // a bigger stack is drawn as a few items
-		for c := 0; c < max(copies, 1); c++ {
-			off := float32(c) * 0.08
-			if e.stack.isBlock() {
-				vs := g.res.fast[int(e.stack.state())&4095].variants
-				if len(vs) == 0 {
-					continue
-				}
-				tint := white
-				for i := range vs[0].quads {
-					q := &vs[0].quads[i]
-					if q.tint >= 0 {
-						tint = g.res.tintFor(e.stack.ID, int(e.stack.Dmg), 1)
-					}
-					col := [4]uint8{toByte(tint[0] * q.shade), toByte(tint[1] * q.shade), toByte(tint[2] * q.shade), l}
-					for v := 0; v < 4; v++ {
-						x, y, z := rot((q.apos[v][0]-0.5)*0.25+off, (q.apos[v][1]-0.5)*0.25, (q.apos[v][2]-0.5)*0.25+off)
-						blocks = append(blocks, vertex{x, y, z, q.auv[v][0], q.auv[v][1], col})
-					}
-				}
+	}
+	return blocks, flat
+}
+
+// itemGeometry adds one item drawn at pos.
+func (g *game) itemGeometry(e *itemEntity, pos vec3, partial float32, blocks, flat []vertex) ([]vertex, []vertex) {
+	if e.stack.empty() { // a server's item whose metadata has not come yet
+		return blocks, flat
+	}
+	t := float32(e.age) + partial
+	bob := float32(math.Sin(float64(t/10+e.hover)))*0.1 + 0.1
+	spin := t/20 + e.hover
+	sin, cos := float32(math.Sin(float64(spin))), float32(math.Cos(float64(spin)))
+	l := g.world.Light(int32(math.Floor(float64(pos[0]))), int32(math.Floor(float64(pos[1]+0.2))), int32(math.Floor(float64(pos[2]))))
+	centre := vec3{pos[0], pos[1] + float64(bob) + 0.25, pos[2]}
+	rot := func(x, y, z float32) (float32, float32, float32) { // turn about the vertical axis through the centre
+		return float32(centre[0] + float64(x*cos-z*sin)), float32(centre[1] + float64(y)), float32(centre[2] + float64(x*sin+z*cos))
+	}
+	copies := min(int(e.stack.N+15)/16, 4) // a bigger stack is drawn as a few items
+	for c := 0; c < max(copies, 1); c++ {
+		off := float32(c) * 0.08
+		if e.stack.isBlock() {
+			vs := g.res.fast[int(e.stack.state())&4095].variants
+			if len(vs) == 0 {
 				continue
 			}
-			tile, ok := g.res.itemTile(e.stack)
-			if !ok {
-				continue
+			tint := white
+			for i := range vs[0].quads {
+				q := &vs[0].quads[i]
+				if q.tint >= 0 {
+					tint = g.res.tintFor(e.stack.ID, int(e.stack.Dmg), 1)
+				}
+				col := [4]uint8{toByte(tint[0] * q.shade), toByte(tint[1] * q.shade), toByte(tint[2] * q.shade), l}
+				for v := 0; v < 4; v++ {
+					x, y, z := rot((q.apos[v][0]-0.5)*0.25+off, (q.apos[v][1]-0.5)*0.25, (q.apos[v][2]-0.5)*0.25+off)
+					blocks = append(blocks, vertex{x, y, z, q.auv[v][0], q.auv[v][1], col})
+				}
 			}
-			u0, v0 := g.res.items.coord(tile, 0, 0)
-			u1, v1 := g.res.items.coord(tile, 16, 16)
-			col := [4]uint8{255, 255, 255, l}
-			const half = 0.25
-			corner := func(x, y, u, v float32) vertex {
-				px, py, pz := rot(x+off, y, off)
-				return vertex{px, py, pz, u, v, col}
-			}
-			// Both sides, so the picture shows from behind as well.
-			flat = append(flat, corner(-half, -half, u0, v1), corner(half, -half, u1, v1), corner(half, half, u1, v0), corner(-half, half, u0, v0))
-			flat = append(flat, corner(half, -half, u1, v1), corner(-half, -half, u0, v1), corner(-half, half, u0, v0), corner(half, half, u1, v0))
+			continue
 		}
+		tile, ok := g.res.itemTile(e.stack)
+		if !ok {
+			continue
+		}
+		u0, v0 := g.res.items.coord(tile, 0, 0)
+		u1, v1 := g.res.items.coord(tile, 16, 16)
+		col := [4]uint8{255, 255, 255, l}
+		const half = 0.25
+		corner := func(x, y, u, v float32) vertex {
+			px, py, pz := rot(x+off, y, off)
+			return vertex{px, py, pz, u, v, col}
+		}
+		// Both sides, so the picture shows from behind as well.
+		flat = append(flat, corner(-half, -half, u0, v1), corner(half, -half, u1, v1), corner(half, half, u1, v0), corner(-half, half, u0, v0))
+		flat = append(flat, corner(half, -half, u1, v1), corner(-half, -half, u0, v1), corner(-half, half, u0, v0), corner(half, half, u1, v0))
 	}
 	return blocks, flat
 }

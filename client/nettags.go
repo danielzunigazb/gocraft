@@ -99,9 +99,11 @@ func readMeta(r *proto.Reader) (map[int]any, bool) {
 		case 4:
 			m[idx] = r.String(32767)
 		case 5:
-			if _, ok := readSlotData(r); !ok {
+			s, ok := readSlotData(r)
+			if !ok {
 				return m, false
 			}
+			m[idx] = s
 		case 6:
 			r.Int()
 			r.Int()

@@ -91,7 +91,7 @@ func (g *game) saveMobStore(o overlay) {
 		}
 	}
 	for _, it := range g.items {
-		if !it.stack.empty() {
+		if !it.stack.empty() && !it.net {
 			f.Items = append(f.Items, itemJSON{Stack: toJSON(it.stack), Pos: it.pos, Age: it.age})
 		}
 	}

@@ -671,6 +671,9 @@ func (g *game) loop() error {
 			g.heldDemo()
 		case "netmenu":
 			g.netDemo(true)
+		case "netitems":
+			g.netDemo(false)
+			g.itemsDemo()
 		case "chests", "chest", "bigchest", "furnace":
 			g.beScreenshot(g.opt.Screen)
 		case "sounds":

@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"math"
 	"net"
 
 	"gocraft/world"
@@ -149,4 +150,23 @@ func (g *game) listDemo() {
 		g.net.board().setScore(nm, "kills", int32(i*7%50), false)
 	}
 	g.net.board().teamUpdate("admin", 0, scoreTeam{prefix: "§c", colour: -1}, []string{"Herobrine"})
+}
+
+// itemsDemo lays a row of the server's dropped items in front of the player (blocks, flat items, a big
+// stack) and one more on its way to another player who has just taken it.
+func (g *game) itemsDemo() {
+	g.net.eid = 7
+	f := look(g.yaw, 0)
+	right := vec3{-f[2], 0, f[0]}
+	ground := vec3{0, math.Floor(g.feet[1]) - g.feet[1], 0}
+	for i, s := range []slot{{ID: 4, N: 3}, {ID: 264, N: 1}, {ID: 2, N: 64}, {ID: 276, N: 1}, {ID: 35, Dmg: 14, N: 5}, {ID: 50, N: 1}} {
+		at := g.feet.add(ground).add(f.scale(3)).add(right.scale(float64(i)*0.7 - 1.75))
+		g.netSpawnItem(int32(100+i), at, vec3{}, true)
+		e := g.net.netItem(int32(100 + i))
+		e.stack, e.age, e.hover = s, 7*i, float32(i)
+	}
+	at := g.feet.add(ground).add(f.scale(6)).add(right.scale(2))
+	g.net.remote[12] = &remotePlayer{eid: 12, name: "Steve", pos: at, prev: at, target: at, yaw: 200, tyaw: 200, headYaw: 200, thead: 200, body: 200, prevBody: 200}
+	lay := at.add(right.scale(-2.2))
+	g.net.pickups = append(g.net.pickups, &pickupFX{item: itemEntity{net: true, stack: slot{ID: 266, N: 1}, pos: lay, prev: lay}, to: 12, age: 1})
 }

@@ -82,16 +82,18 @@ type netState struct {
 	c              *netClient
 	received       map[world.ChunkPos]bool
 	remote         map[int32]*remotePlayer
-	ents           map[int32]*netEntity // mobs the server spawned, for their names
-	extra          [45]itemExtra        // names and lore of the items in the player's window, by slot
-	sb             *scoreboard          // objectives, scores and teams the server keeps
-	heavyQ         []heavyMsg           // columns and blocks read but not yet applied
-	pumped         time.Time            // when the cheap packets were last applied
-	epochApplied   uint32               // the newest world the game has begun
-	score          int32                // the score the death screen shows: the player's metadata 18
-	names          map[string]string    // tab list: uuid -> name
-	tab            map[string]*tabEntry // the player list, by uuid
-	header, footer []styledRun          // the list's header and footer
+	ents           map[int32]*netEntity  // mobs the server spawned, for their names
+	items          map[int32]*itemEntity // dropped items the server spawned; they are in g.items too
+	pickups        []*pickupFX           // items just collected, flying to who took them
+	extra          [45]itemExtra         // names and lore of the items in the player's window, by slot
+	sb             *scoreboard           // objectives, scores and teams the server keeps
+	heavyQ         []heavyMsg            // columns and blocks read but not yet applied
+	pumped         time.Time             // when the cheap packets were last applied
+	epochApplied   uint32                // the newest world the game has begun
+	score          int32                 // the score the death screen shows: the player's metadata 18
+	names          map[string]string     // tab list: uuid -> name
+	tab            map[string]*tabEntry  // the player list, by uuid
+	header, footer []styledRun           // the list's header and footer
 	eid            int32
 	// what the server last heard from us
 	sentPos         vec3
@@ -763,6 +765,8 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 				g.netVelocity(vx, vy, vz)
 			} else if e := g.net.entity(eid); e != nil {
 				e.vel, e.stuck = vec3{float64(vx) / 8000, float64(vy) / 8000, float64(vz) / 8000}, false
+			} else if it := g.net.netItem(eid); it != nil {
+				it.vel = vec3{float64(vx) / 8000, float64(vy) / 8000, float64(vz) / 8000}
 			}
 		}
 	case 0x1A: // entity status
@@ -782,22 +786,31 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 			for _, e := range ids {
 				delete(g.net.remote, e)
 				delete(g.net.ents, e)
+				g.net.removeNetItem(e)
 			}
 		}
 	case 0x18: // teleport
 		eid := r.VarInt()
-		x, y, z := float32(r.Int())/32, float32(r.Int())/32, float32(r.Int())/32
+		x, y, z := float64(r.Int())/32, float64(r.Int())/32, float64(r.Int())/32 // doubles, as the game reads them
 		yaw, pitch := float32(int8(r.Byte()))*360/256, float32(int8(r.Byte()))*360/256
 		if r.Err() != nil {
 			return nil
 		}
 		return func(g *game) {
 			if p := g.net.remote[eid]; p != nil {
-				p.moveTo(vec3{float64(x), float64(y), float64(z)}, yaw, pitch)
+				p.moveTo(vec3{x, y, z}, yaw, pitch)
 			} else if e := g.net.entity(eid); e != nil {
-				e.moveTo(vec3{float64(x), float64(y), float64(z)})
+				e.moveTo(vec3{x, y, z})
+			} else if it := g.net.netItem(eid); it != nil {
+				g.moveNetItem(it, vec3{x, y, z})
 			}
 		}
+	case 0x0D: // collect item: someone took an item (or an arrow, or an orb) off the ground
+		item, collector := r.VarInt(), r.VarInt()
+		if r.Err() != nil {
+			return nil
+		}
+		return func(g *game) { g.netCollect(item, collector) }
 	case 0x0B: // animation
 		eid := r.VarInt()
 		anim := r.Byte()
@@ -887,6 +900,8 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 				p.moveTo(t, ty, tp)
 			} else if e := g.net.entity(eid); e != nil && hasMove {
 				e.moveTo(e.target.add(vec3{float64(dx), float64(dy), float64(dz)}))
+			} else if it := g.net.netItem(eid); it != nil && hasMove {
+				g.moveNetItem(it, it.srv.add(vec3{float64(dx), float64(dy), float64(dz)}))
 			}
 		}
 	case 0x19: // head look
@@ -991,6 +1006,9 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 		if r.Err() != nil {
 			return nil
 		}
+		if kind == objItem {
+			return func(g *game) { g.netSpawnItem(eid, vec3{x, y, z}, vel, data > 0) }
+		}
 		e := &netEntity{eid: eid, obj: kind, owner: data, pos: vec3{x, y, z}, prev: vec3{x, y, z}, target: vec3{x, y, z}, vel: vel}
 		return func(g *game) { g.net.addEntity(e) }
 	case 0x1C: // entity metadata
@@ -1015,6 +1033,10 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 				p.applyMeta(meta)
 			} else if e := g.net.entity(eid); e != nil {
 				e.apply(meta)
+			} else if it := g.net.netItem(eid); it != nil {
+				if s, ok := meta[10].(slot); ok { // what the item is
+					it.stack = s
+				}
 			}
 		}
 	case 0x2D: // open window
@@ -1146,7 +1168,7 @@ func (g *game) netRespawn(d int, mode byte) {
 	}
 	n.received = map[world.ChunkPos]bool{}
 	n.remote = map[int32]*remotePlayer{}
-	n.ents = nil
+	n.ents, n.items, n.pickups = nil, nil, nil
 	g.closeServerWindow(false)
 	g.world = world.NewFrom(func(world.ChunkPos) *world.Chunk { return nil })
 	g.world.SetLightRules(g.res.light)
@@ -1315,6 +1337,7 @@ func (g *game) tickNet() {
 func (g *game) tickRemotes() {
 	n := g.net
 	g.tickEnts()
+	g.tickPickups()
 	for _, p := range n.remote {
 		p.prev = p.pos
 		p.prevBody = p.body

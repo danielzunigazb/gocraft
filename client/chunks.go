@@ -424,7 +424,7 @@ func (g *game) drawChunks(mvp *mat4) {
 
 // drawItems draws the dropped items: blocks as small cubes, other items as flat pictures.
 func (g *game) drawItems() {
-	if len(g.items) == 0 {
+	if len(g.items) == 0 && (g.net == nil || len(g.net.pickups) == 0) {
 		return
 	}
 	blocks, flat := g.buildItemGeometry(g.partial)
