@@ -20,7 +20,8 @@ func TestPlayerModelHeight(t *testing.T) {
 		}
 		return m - pos[1]
 	}
-	if h := top(groups["look/skin"]); math.Abs(h-1.875-0.05) > 0.02 { // the hat layer stands a little over the head
+	skin, _ := g.skinFor(p)
+	if h := top(groups[skin]); math.Abs(h-1.875-0.05) > 0.02 { // the hat layer stands a little over the head
 		t.Fatalf("the player's skin reaches %.4f above the feet, want 1.875 (hat 0.05 more)", h)
 	}
 	if h := top(groups["armor/diamond_layer_1"]); h < 1.9 || h > 2.0 {

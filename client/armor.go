@@ -45,37 +45,47 @@ func leatherColour(ex itemExtra) [3]uint8 {
 	return [3]uint8{uint8(c >> 16), uint8(c >> 8), uint8(c)}
 }
 
-// armorRots turns the player's twelve poses into the armour model's six.
-func armorRots(r []rot) []rot {
-	return []rot{r[pHead], r[pBody], r[pRArm], r[pLArm], r[pRLeg], r[pLLeg]}
-}
+// armorMasks is which of the model's six parts each slot's piece shows.
+var armorMasks = func() (m [4][6]bool) {
+	for slot, parts := range armorParts {
+		for _, p := range parts {
+			m[slot][p] = true
+		}
+	}
+	return
+}()
 
-// emitArmor adds the armour a player wears, on top of their posed model. pieces go boots to helmet.
-func emitArmor(groups map[string][]vertex, pieces [4]slot, extras [4]itemExtra, rots []rot, pos vec3, yaw, tilt float32, tint [3]uint8, light uint8) {
-	ar := armorRots(rots)
+// emitArmor adds the armour a player wears, on top of their posed model. pieces go boots to helmet. The
+// player's twelve poses give the armour model's six.
+func emitArmor(groups map[string][]vertex, pieces [4]slot, extras [4]itemExtra, rots []rot, pos vec3, yaw, tilt float32, tint [3]uint8, light uint8, scale float64) {
+	ar := [6]rot{rots[pHead], rots[pBody], rots[pRArm], rots[pLArm], rots[pRLeg], rots[pLLeg]}
 	for slotN, it := range pieces {
 		mat, _, ok := armorOf(it.ID)
 		if !ok || it.empty() {
 			continue
 		}
-		model, layer := armorOuter, "1"
+		model, key := armorOuter, armorKeys[mat][0]
 		if slotN == 1 {
-			model, layer = armorInner, "2"
+			model, key = armorInner, armorKeys[mat][1]
 		}
-		mask := make([]bool, 6)
-		for _, i := range armorParts[slotN] {
-			mask[i] = true
-		}
-		key := "armor/" + armorMaterials[mat] + "_layer_" + layer
+		mask := armorMasks[slotN][:]
 		t := tint
 		if mat == 0 { // leather takes its dye, and then its overlay is drawn undyed
 			c := leatherColour(extras[slotN])
 			t = [3]uint8{uint8(int(c[0]) * int(tint[0]) / 255), uint8(int(c[1]) * int(tint[1]) / 255), uint8(int(c[2]) * int(tint[2]) / 255)}
 		}
-		groups[key] = emitModelParts(groups[key], model, ar, mask, pos, yaw, tilt, t, light)
+		groups[key] = emitModelScaled(groups[key], model, ar[:], mask, pos, yaw, tilt, t, light, scale)
 		if mat == 0 {
 			ov := key + "_overlay"
-			groups[ov] = emitModelParts(groups[ov], model, ar, mask, pos, yaw, tilt, tint, light)
+			groups[ov] = emitModelScaled(groups[ov], model, ar[:], mask, pos, yaw, tilt, tint, light, scale)
 		}
 	}
 }
+
+// armorKeys are the texture names of each material's two layers.
+var armorKeys = func() (k [5][2]string) {
+	for i, m := range armorMaterials {
+		k[i] = [2]string{"armor/" + m + "_layer_1", "armor/" + m + "_layer_2"}
+	}
+	return
+}()

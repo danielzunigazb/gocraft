@@ -184,7 +184,7 @@ func loadResources(jarPath string, packs []string) (*resources, error) {
 	r.table = stateTable(&r.opaque)
 	r.findOpaque()
 	r.entity = map[string]*image.RGBA{}
-	extra := []string{"environment/end_sky", "arrow", "steve", "chest/normal", "chest/normal_double", "chest/trapped", "chest/trapped_double"}
+	extra := []string{"environment/end_sky", "arrow", "steve", "alex", "chest/normal", "chest/normal_double", "chest/trapped", "chest/trapped_double"}
 	for _, m := range armorMaterials {
 		extra = append(extra, "armor/"+m+"_layer_1", "armor/"+m+"_layer_2")
 	}

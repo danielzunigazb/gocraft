@@ -265,6 +265,7 @@ func (g *game) tick(in input) {
 	}
 	g.tickEffects()
 	g.statusBars.ticks++
+	g.tickTitles()
 	if g.health <= 0 && g.net != nil {
 		g.deathTime = min(g.deathTime+1, 20)
 	} else {
@@ -280,6 +281,9 @@ func (g *game) moveWithHeading(strafe, forward float32, inWater, inLava bool) {
 	if g.flying {
 		keep := g.vel[1]
 		factor := flySpeed
+		if g.flyCap > 0 { // and how fast it flies: /flyspeed
+			factor = g.flyCap
+		}
 		if g.sprinting {
 			factor *= 2
 		}

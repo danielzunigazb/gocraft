@@ -33,47 +33,66 @@ type netClient struct {
 	w         io.Writer    // the connection, or its encrypting end in online mode
 	conn      net.Conn
 	name      string
-	inbox     chan func(*game)
+	inbox     chan func(*game) // what is cheap: players, chat, health. Applied before each tick, in order
+	heavy     chan heavyMsg    // what is not: columns and block changes, applied within a budget each frame
+	epoch     atomic.Uint32    // counts Join Game and Respawn: columns of an old world must not reach a new one
 	out       chan []byte
 	done      chan struct{}
+	encrypted bool // the connection is encrypted: the server checks accounts, and the list shows heads
 }
+
+// heavyMsg is a packet that changes the world: a column, a block. It carries the epoch it was read in.
+type heavyMsg struct {
+	f     func(*game)
+	epoch uint32
+}
+
+// heavyPacket says which clientbound packets go to the budgeted queue: Chunk Data, Multi Block Change,
+// Block Change, Map Chunk Bulk.
+func heavyPacket(id int32) bool { return id == 0x21 || id == 0x22 || id == 0x23 || id == 0x26 }
 
 // remotePlayer is another player as the server tells of them.
 type remotePlayer struct {
-	eid               int32
-	uuid, name        string
-	pos, prev, target vec3
-	yaw, pitch        float32
-	ls, lsa           float32
-	swing             int
-	hurt              int  // ticks of red tint after a blow
-	dead              bool // lying dead until the server shows them again
-	sneaking          bool
-	sprinting, using  bool // metadata flags: running, and eating/blocking/drawing a bow
-	useTicks          int  // how long the item has been in use: a bow shows how far it is drawn
-	invisible, onFire bool
-	tyaw, tpitch      float32 // where the server turned them; they get there over the same ticks as the position
-	inc               int
-	headYaw, thead    float32
-	body, prevBody    float32 // the body's yaw, which follows the head with a lag (renderYawOffset)
-	held              slot
-	heldX             itemExtra
-	armor             [4]slot // boots, leggings, chestplate, helmet
-	armorX            [4]itemExtra
-	deathTime         int
+	eid                          int32
+	uuid, name                   string
+	pos, prev, target            vec3
+	yaw, pitch                   float32
+	ls, lsa                      float32
+	swing                        int
+	hurt                         int  // ticks of red tint after a blow
+	dead                         bool // lying dead until the server shows them again
+	sneaking                     bool
+	sprinting, using             bool // metadata flags: running, and eating/blocking/drawing a bow
+	useTicks                     int  // how long the item has been in use: a bow shows how far it is drawn
+	invisible, onFire            bool
+	tyaw, tpitch                 float32 // where the server turned them; they get there over the same ticks as the position
+	inc                          int
+	headYaw, thead               float32
+	prevYaw, prevHead, prevPitch float32 // the angles a tick ago: what is drawn is between them and the current ones
+	body, prevBody               float32 // the body's yaw, which follows the head with a lag (renderYawOffset)
+	held                         slot
+	heldX                        itemExtra
+	armor                        [4]slot // boots, leggings, chestplate, helmet
+	armorX                       [4]itemExtra
+	deathTime                    int
 }
 
 // netState is what the game keeps for a connection.
 type netState struct {
-	c        *netClient
-	received map[world.ChunkPos]bool
-	remote   map[int32]*remotePlayer
-	ents     map[int32]*netEntity // mobs the server spawned, for their names
-	extra    [45]itemExtra        // names and lore of the items in the player's window, by slot
-	sb       *scoreboard          // objectives, scores and teams the server keeps
-	score    int32                // the score the death screen shows: the player's metadata 18
-	names    map[string]string    // tab list: uuid -> name
-	eid      int32
+	c              *netClient
+	received       map[world.ChunkPos]bool
+	remote         map[int32]*remotePlayer
+	ents           map[int32]*netEntity // mobs the server spawned, for their names
+	extra          [45]itemExtra        // names and lore of the items in the player's window, by slot
+	sb             *scoreboard          // objectives, scores and teams the server keeps
+	heavyQ         []heavyMsg           // columns and blocks read but not yet applied
+	pumped         time.Time            // when the cheap packets were last applied
+	epochApplied   uint32               // the newest world the game has begun
+	score          int32                // the score the death screen shows: the player's metadata 18
+	names          map[string]string    // tab list: uuid -> name
+	tab            map[string]*tabEntry // the player list, by uuid
+	header, footer []styledRun          // the list's header and footer
+	eid            int32
 	// what the server last heard from us
 	sentPos         vec3
 	sentYaw, sentPt float32
@@ -129,8 +148,9 @@ func dial(addr, name string, la *loginAuth) (*netClient, error) {
 		conn.Close()
 		return nil, err
 	}
-	br := bufio.NewReader(conn)
+	br := bufio.NewReaderSize(conn, 1<<16)
 	var out io.Writer = conn
+	encrypted := false
 	threshold := -1
 login:
 	for {
@@ -157,26 +177,41 @@ login:
 				conn.Close()
 				return nil, err
 			}
-			br, out = bufio.NewReader(rd), wr
+			br, out = bufio.NewReaderSize(rd, 1<<16), wr
+			encrypted = true
 		default:
 			conn.Close()
 			return nil, fmt.Errorf("unexpected login packet 0x%02x", id)
 		}
 	}
 	conn.SetDeadline(time.Time{})
-	c := &netClient{conn: conn, w: out, name: name, inbox: make(chan func(*game), 8192), out: make(chan []byte, 1024), done: make(chan struct{})}
+	c := &netClient{conn: conn, w: out, name: name, encrypted: encrypted, inbox: make(chan func(*game), 8192), heavy: make(chan heavyMsg, 8192), out: make(chan []byte, 1024), done: make(chan struct{})}
 	c.threshold.Store(int32(threshold))
 	go c.writeLoop()
 	go c.readLoop(br)
 	return c, nil
 }
 
+// writeLoop sends what the game queued. Everything that is waiting goes out in one write: a tick that sends a
+// movement, a held-slot change and an action is one segment, not three, and an encrypted connection runs its
+// cipher once.
 func (c *netClient) writeLoop() {
+	var buf []byte
 	for {
 		select {
 		case f := <-c.out:
+			buf = append(buf[:0], f...)
+		gather:
+			for len(buf) < 32<<10 {
+				select {
+				case f := <-c.out:
+					buf = append(buf, f...)
+				default:
+					break gather
+				}
+			}
 			c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
-			if _, err := c.w.Write(f); err != nil {
+			if _, err := c.w.Write(buf); err != nil {
 				c.conn.Close()
 				return
 			}
@@ -224,7 +259,18 @@ func (c *netClient) readLoop(br *bufio.Reader) {
 			c.threshold.Store(r.VarInt())
 			continue
 		}
-		if f := parsePacket(id, r); f != nil {
+		f := parsePacketIn(id, r, &c.dim)
+		switch {
+		case f == nil:
+		case heavyPacket(id):
+			c.heavy <- heavyMsg{f, c.epoch.Load()}
+		case id == 0x01 || id == 0x07: // a new world begins: what is heavy from now on belongs to it
+			ep := c.epoch.Add(1)
+			c.inbox <- func(g *game) {
+				g.net.epochApplied = ep
+				f(g)
+			}
+		default:
 			c.inbox <- f
 		}
 	}
@@ -418,12 +464,12 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 		return func(g *game) { g.netRespawn(int(d), mode) }
 	case 0x39: // player abilities: the server can allow flying and set the player flying (a client check does)
 		flags := r.Byte()
-		r.Float() // fly speed
-		r.Float() // walk speed
+		fly, walk := r.Float(), r.Float()
 		if r.Err() != nil {
 			return nil
 		}
 		return func(g *game) {
+			g.flyCap, g.walkCap = fly, walk
 			g.allowFly = flags&4 != 0
 			g.flying = flags&2 != 0
 			if g.flying {
@@ -587,10 +633,27 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 	case 0x02: // chat
 		runs := parseChat(r.String(32767))
 		pos := r.Byte()
-		if r.Err() != nil || pos == 2 {
+		if r.Err() != nil {
 			return nil
 		}
+		if pos == 2 { // the action bar: over the hotbar for three seconds
+			return func(g *game) { g.titles.action, g.titles.actionTicks = runs, 60 }
+		}
 		return func(g *game) { g.addChatRuns(runs) }
+	case 0x45: // title: a big message in the middle of the screen, a subtitle under it
+		action := r.VarInt()
+		var text []styledRun
+		var in, stay, out int
+		switch action {
+		case 0, 1:
+			text = parseChat(r.String(32767))
+		case 2:
+			in, stay, out = int(r.Int()), int(r.Int()), int(r.Int())
+		}
+		if r.Err() != nil {
+			return nil
+		}
+		return func(g *game) { g.netTitle(action, text, in, stay, out) }
 	case 0x03: // time
 		r.Long()
 		t := r.Long()
@@ -665,7 +728,7 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 		}
 		return func(g *game) {
 			p := vec3{float64(x), float64(y), float64(z)}
-			rp := &remotePlayer{eid: eid, uuid: uuid, name: g.net.names[uuid], pos: p, prev: p, target: p, yaw: yaw, pitch: pitch, tyaw: yaw, tpitch: pitch, headYaw: yaw, thead: yaw, body: yaw, prevBody: yaw}
+			rp := &remotePlayer{eid: eid, uuid: uuid, name: g.net.names[uuid], pos: p, prev: p, target: p, yaw: yaw, pitch: pitch, tyaw: yaw, tpitch: pitch, headYaw: yaw, thead: yaw, body: yaw, prevBody: yaw, prevYaw: yaw, prevHead: yaw, prevPitch: pitch}
 			if item > 0 {
 				rp.held = slot{ID: uint16(item), N: 1}
 			}
@@ -750,55 +813,15 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 				}
 			}
 		}
-	case 0x38: // tab list
-		action := r.VarInt()
-		n := int(r.VarInt())
-		type ent struct{ uuid, name string }
-		var es []ent
-		for i := 0; i < n && r.Err() == nil; i++ {
-			e := ent{uuid: uuidString(r.Bytes(16))}
-			switch action {
-			case 0:
-				e.name = r.String(16)
-				for np := int(r.VarInt()); np > 0 && r.Err() == nil; np-- {
-					r.String(32)
-					r.String(32767)
-					if r.Bool() {
-						r.String(32767)
-					}
-				}
-				r.VarInt()
-				r.VarInt()
-				if r.Bool() {
-					r.String(32767)
-				}
-			case 1, 2:
-				r.VarInt()
-			case 3:
-				if r.Bool() {
-					r.String(32767)
-				}
-			}
-			es = append(es, e)
-		}
+	case 0x38: // player list: names, skins, ping, game modes
+		return parseTabList(r)
+	case 0x47: // player list header and footer
+		header, footer := r.String(32767), r.String(32767)
 		if r.Err() != nil {
 			return nil
 		}
-		return func(g *game) {
-			for _, e := range es {
-				switch action {
-				case 0:
-					g.net.names[e.uuid] = e.name
-					for _, p := range g.net.remote {
-						if p.uuid == e.uuid {
-							p.name = e.name
-						}
-					}
-				case 4:
-					delete(g.net.names, e.uuid)
-				}
-			}
-		}
+		hr, fr := parseChat(header), parseChat(footer)
+		return func(g *game) { g.net.header, g.net.footer = hr, fr }
 	case 0x21: // chunk
 		u, ok := parseChunk(r, dim == nil || dim.Load() == 0)
 		if !ok {
@@ -1044,6 +1067,8 @@ func (g *game) connect(addr, name string) error {
 	g.health, g.food, g.saturation = maxHealth, maxFood, 5
 	g.creative, g.flying, g.onGround, g.allowFly = true, false, false, false
 	g.effects = nil
+	g.walkCap, g.flyCap = 0, 0
+	g.titles = titleState{}
 	g.maxHP, g.absorption, g.xpBar, g.xpLevel, g.air = 0, 0, 0, 0, 300
 	g.pos = vec3{0.5, world.SpawnY + eyeHeight, 0.5}
 	g.feet = g.pos.sub(vec3{0, eyeHeight, 0})
@@ -1164,23 +1189,65 @@ func (g *game) forgetMesh(cp world.ChunkPos) {
 	}
 }
 
-// pumpNet runs what the network thread has queued, within a time budget so a burst of columns
-// does not freeze a frame.
+// pumpNet applies everything the network thread has queued: the cheap packets at once, the columns within
+// their budget. The game loop uses pumpLight before each tick and pumpHeavy once a frame.
 func (g *game) pumpNet() {
-	if g.net == nil {
-		return
+	g.pumpLight()
+	g.pumpHeavy(4 * time.Millisecond)
+}
+
+// pumpLight applies the cheap packets, all of them and in order. Run right before a tick, it is what the game
+// does too: other players' moves are taken in, and the same tick takes the first step towards them.
+func (g *game) pumpLight() {
+	if g.net != nil {
+		g.net.pumped = time.Now()
 	}
-	end := time.Now().Add(4 * time.Millisecond)
-	for {
+	for g.net != nil {
 		select {
 		case f := <-g.net.c.inbox:
 			f(g)
-			if g.net == nil || time.Now().After(end) {
-				return
-			}
 		default:
 			return
 		}
+	}
+}
+
+// pumpHeavy applies columns and blocks until the budget is spent. A column of a world the game has not begun
+// yet (its Respawn has not been applied) waits; one of a world that is gone is dropped.
+func (g *game) pumpHeavy(budget time.Duration) {
+	n := g.net
+	if n == nil {
+		return
+	}
+	for { // take in what has arrived
+		select {
+		case m := <-n.c.heavy:
+			n.heavyQ = append(n.heavyQ, m)
+			continue
+		default:
+		}
+		break
+	}
+	end := time.Now().Add(budget)
+	done := 0
+	for done < len(n.heavyQ) {
+		m := n.heavyQ[done]
+		if m.epoch > n.epochApplied {
+			break
+		}
+		done++
+		if m.epoch == n.epochApplied {
+			m.f(g)
+			if g.net == nil {
+				return
+			}
+		}
+		if time.Now().After(end) {
+			break
+		}
+	}
+	if done > 0 {
+		n.heavyQ = append(n.heavyQ[:0], n.heavyQ[done:]...)
 	}
 }
 
@@ -1233,6 +1300,7 @@ func (g *game) tickRemotes() {
 	for _, p := range n.remote {
 		p.prev = p.pos
 		p.prevBody = p.body
+		p.prevYaw, p.prevHead, p.prevPitch = p.yaw, p.headYaw, p.pitch
 		if p.inc > 0 { // EntityOtherPlayerMP.onLivingUpdate: a third of the way each tick, then half, then there
 			k := float64(p.inc)
 			p.pos = p.pos.add(p.target.sub(p.pos).scale(1 / k))

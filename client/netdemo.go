@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"net"
 
 	"gocraft/world"
@@ -122,4 +123,30 @@ func (g *game) profileDemo() {
 	}
 	hook := g.net.remote[21].pos.add(vec3{1.2, 0.1, 0})
 	g.net.addEntity(&netEntity{eid: 70, obj: objFishHook, owner: 21, pos: hook, prev: hook, target: hook})
+}
+
+// listDemo fills the player list and shows it.
+func (g *game) listDemo() {
+	g.listForced = true
+	g.net.header = legacyRuns("§6§lUNIVERSOCRAFT §7Network\n§fJugadores: §a529", defaultStyle)
+	g.net.footer = legacyRuns("§euniversocraft.com §7| §bdiscord.universocraft.com", defaultStyle)
+	g.net.tab = map[string]*tabEntry{}
+	names := []string{"000danielz", "Herobrine", "Steve", "Alex", "Notch", "jeb_", "Dinnerbone", "Grumm", "xXProXx", "Kratos", "Zeus", "Hades", "Athena", "Apolo", "Ares", "Hera", "Eros", "Gaia", "Nyx", "Pan", "Rea", "Tetis", "Uranio", "Febe", "Hebe", "Iris", "Mnemosine", "Temis", "Cronos", "Hestia"}
+	for i, nm := range names {
+		e := &tabEntry{uuid: fmt.Sprintf("%032x", i+1), name: nm, ping: []int{12, 80, 160, 320, 700, 1200}[i%6]}
+		if i == 1 {
+			e.display = legacyRuns("§c[ADMIN] Herobrine", defaultStyle)
+		}
+		if i == 4 {
+			e.gamemode = 3
+		}
+		g.net.tab[e.uuid] = e
+	}
+	g.net.sb = nil
+	g.net.board().objective("kills", 0, "Kills")
+	g.net.board().slots[0] = "kills"
+	for i, nm := range names {
+		g.net.board().setScore(nm, "kills", int32(i*7%50), false)
+	}
+	g.net.board().teamUpdate("admin", 0, scoreTeam{prefix: "§c", colour: -1}, []string{"Herobrine"})
 }

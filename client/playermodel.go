@@ -21,7 +21,7 @@ const (
 	pLPants
 )
 
-var playerMdl, capeMdl, wingMdl *mmodel
+var playerMdl, playerSlim, capeMdl, wingMdl *mmodel
 
 func init() {
 	defer func() { kinds["PvPBot"].model = playerMdl }() // the practice bot wears the same model
@@ -34,6 +34,21 @@ func init() {
 		part(-5, 2, 0, boxX(40, 32, -3, -2, -2, 4, 12, 4, 0.25)),
 		part(5, 2, 0, box(32, 48, -1, -2, -2, 4, 12, 4)),
 		part(5, 2, 0, boxX(48, 48, -1, -2, -2, 4, 12, 4, 0.25)),
+		part(-1.9, 12, 0, box(0, 16, -2, 0, -2, 4, 12, 4)),
+		part(-1.9, 12, 0, boxX(0, 32, -2, 0, -2, 4, 12, 4, 0.25)),
+		part(1.9, 12, 0, box(16, 48, -2, 0, -2, 4, 12, 4)),
+		part(1.9, 12, 0, boxX(0, 48, -2, 0, -2, 4, 12, 4, 0.25)),
+	)
+	// Alex's model: the same, with arms three wide that hang from half a unit lower.
+	playerSlim = newModel(64, 64,
+		part(0, 0, 0, box(0, 0, -4, -8, -4, 8, 8, 8)),
+		part(0, 0, 0, boxX(32, 0, -4, -8, -4, 8, 8, 8, 0.5)),
+		part(0, 0, 0, box(16, 16, -4, 0, -2, 8, 12, 4)),
+		part(0, 0, 0, boxX(16, 32, -4, 0, -2, 8, 12, 4, 0.25)),
+		part(-5, 2.5, 0, box(40, 16, -2, -2, -2, 3, 12, 4)),
+		part(-5, 2.5, 0, boxX(40, 32, -2, -2, -2, 3, 12, 4, 0.25)),
+		part(5, 2.5, 0, box(32, 48, -1, -2, -2, 3, 12, 4)),
+		part(5, 2.5, 0, boxX(48, 48, -1, -2, -2, 3, 12, 4, 0.25)),
 		part(-1.9, 12, 0, box(0, 16, -2, 0, -2, 4, 12, 4)),
 		part(-1.9, 12, 0, boxX(0, 32, -2, 0, -2, 4, 12, 4, 0.25)),
 		part(1.9, 12, 0, box(16, 48, -2, 0, -2, 4, 12, 4)),
@@ -76,6 +91,12 @@ type poseState struct {
 // swing of the arm and the arms' idle sway.
 func playerRots(st poseState) []rot {
 	r := make([]rot, 12)
+	playerRotsInto(r, st)
+	return r
+}
+
+// playerRotsInto is playerRots into a slice the caller owns (twelve long), so that drawing allocates nothing.
+func playerRotsInto(r []rot, st poseState) {
 	r[pHead] = rot{x: st.headPitch * deg, y: st.headYaw * deg}
 	rArm := rot{x: cos32(st.ls*armSw+pi) * 2 * st.lsa * 0.5}
 	lArm := rot{x: cos32(st.ls*armSw) * 2 * st.lsa * 0.5}
@@ -134,7 +155,6 @@ func playerRots(st poseState) []rot {
 			r[i].dy, r[i].dz = 0.2, 0
 		}
 	}
-	return r
 }
 
 // capeRot is how far the cape swings out behind: a little at rest, more the faster the wearer goes

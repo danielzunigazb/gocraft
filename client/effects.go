@@ -27,6 +27,9 @@ func (g *game) hasEffect(id int) (potionEffect, bool) {
 // Slowness, times 1.3 when sprinting (each modifier multiplies the total, as the attribute's operation 2 does).
 func (g *game) groundSpeed() float32 {
 	v := float64(landSpeed)
+	if g.walkCap > 0 { // a server may change how fast the player walks: /walkspeed
+		v = float64(g.walkCap)
+	}
 	if e, ok := g.effects[effSpeed]; ok {
 		v *= 1 + 0.2*float64(e.amp+1)
 	}

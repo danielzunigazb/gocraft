@@ -157,10 +157,17 @@ type game struct {
 	stream                     *streamer
 	edit                       meshData
 	visible                    []*chunkMesh
-	solidArenas, waterArenas   arenaSet      // where the columns' quads live on the GPU (arena.go)
-	camPos                     vec3          // the camera, for skipping faces turned away from it
-	swin                       *serverWindow // the window a server opened, if one is
-	vis                        visScratch    // the cave-culling traversal
+	solidArenas, waterArenas   arenaSet             // where the columns' quads live on the GPU (arena.go)
+	camPos                     vec3                 // the camera, for skipping faces turned away from it
+	camDir                     vec3                 // where it looks
+	skins                      map[string]*skinSlot // the skins fetched or being fetched, by URL
+	skinDone                   chan skinResult      // skins that arrived, to put on the GPU
+	walkCap, flyCap            float32              // the walk and fly speeds the server allows (0.1 and 0.05 by default)
+	listForced                 bool                 // a screenshot shows the player list without Tab
+	titles                     titleState           // the title and action bar a server wrote
+	entGroups                  map[string][]vertex  // the vertices of this frame's entities, kept to be reused
+	swin                       *serverWindow        // the window a server opened, if one is
+	vis                        visScratch           // the cave-culling traversal
 	stats                      drawStats
 	opts                       options
 	rebinding                  string
@@ -589,7 +596,7 @@ func (g *game) draw() {
 	}
 
 	camPos, camDir := g.camera()
-	g.camPos = camPos
+	g.camPos, g.camDir = camPos, camDir
 	g.drawSky(g.opts.FOV*math.Pi/180, w, h, camDir)
 	proj := perspective(g.opts.FOV*math.Pi/180, float32(w)/float32(h), 0.05, 1000)
 	view := lookAt(camPos, camPos.add(camDir), g.rolledUp(camDir))
@@ -616,6 +623,8 @@ func (g *game) draw() {
 	g.drawHUD(w, h)
 	g.drawSidebar(w, h)
 	g.drawChat(w, h)
+	g.drawTabList(w, h)
+	g.drawTitles(w, h)
 	if g.screen == screenServerWin { // over the chat, as the game's screens are
 		g.drawServerWindow(w, h)
 	}
@@ -646,6 +655,9 @@ func (g *game) loop() error {
 			g.screen = screenPause
 		case "netchat":
 			g.netDemo(false)
+		case "netlist":
+			g.netDemo(false)
+			g.listDemo()
 		case "netheld":
 			g.netDemo(false)
 			g.profileDemo()
@@ -785,6 +797,7 @@ func (g *game) loop() error {
 			}
 		}
 		for acc >= 1.0/tickRate {
+			g.pumpLight()                                                                    // the game takes in what the server sent just before the tick that moves things on
 			if g.inGame && (!g.screen.isMenu() || g.net != nil && g.screen == screenPause) { // a menu pauses the game, as in single player; a server's does not wait
 				g.tick(g.input())
 				if g.autosave++; g.autosave >= 60*tickRate {
@@ -794,7 +807,10 @@ func (g *game) loop() error {
 			}
 			acc -= 1.0 / tickRate
 		}
-		g.pumpNet()
+		if g.net != nil && time.Since(g.net.pumped) > 100*time.Millisecond { // no tick is running (a menu): do not let packets pile up
+			g.pumpLight()
+		}
+		g.pumpHeavy(4 * time.Millisecond)
 		a := float32(acc * tickRate)
 		g.partial = a
 		if g.inGame {

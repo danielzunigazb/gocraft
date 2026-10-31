@@ -8,7 +8,19 @@ import (
 
 // drawMobs draws every mob with its model, grouped by texture.
 func (g *game) drawMobs() {
-	groups := map[string][]vertex{}
+	if g.entGroups == nil {
+		g.entGroups = map[string][]vertex{}
+	}
+	if g.net != nil {
+		if g.skinDone == nil {
+			g.skinDone = make(chan skinResult, 32)
+		}
+		g.pumpSkins()
+	}
+	groups := g.entGroups // the same buffers every frame: nothing is allocated once they have grown
+	for k := range groups {
+		groups[k] = groups[k][:0]
+	}
 	g.emitChests(groups)
 	if len(g.mobs) == 0 && len(g.arrows) == 0 && g.perspective == 0 && (g.net == nil || len(g.net.remote) == 0 && len(g.net.ents) == 0) && len(groups) == 0 {
 		return
@@ -67,6 +79,9 @@ func (g *game) drawMobs() {
 	}
 	if g.net != nil {
 		for _, p := range g.net.remote {
+			if g.offScreen(p.pos, 3) {
+				continue
+			}
 			g.emitRemote(groups, p)
 		}
 	}
@@ -132,40 +147,21 @@ func (g *game) emitSelf(groups map[string][]vertex) {
 		tint = [3]uint8{255, 110, 110}
 	}
 	rots := playerRots(st)
-	mark := markGroups(groups)
-	groups["look/skin"] = emitModel(groups["look/skin"], playerMdl, rots, pos, body, 0, tint, l)
+	groups["look/skin"] = emitModelScaled(groups["look/skin"], playerMdl, rots, nil, pos, body, 0, tint, l, playerScale)
 	var extras [4]itemExtra
 	if g.net != nil {
 		extras = [4]itemExtra{g.net.extra[8], g.net.extra[7], g.net.extra[6], g.net.extra[5]}
 	}
-	emitArmor(groups, [4]slot{g.armor[3], g.armor[2], g.armor[1], g.armor[0]}, extras, rots, pos, body, 0, tint, l)
-	groups["look/cape"] = emitModel(groups["look/cape"], capeMdl, []rot{capeRot(st)}, pos, body, 0, [3]uint8{255, 255, 255}, l)
-	groups["look/wings"] = emitModel(groups["look/wings"], wingMdl, wingRots(st), pos, body, 0, [3]uint8{255, 255, 255}, l)
-	scalePlayerSince(groups, mark, pos)
+	emitArmor(groups, [4]slot{g.armor[3], g.armor[2], g.armor[1], g.armor[0]}, extras, rots, pos, body, 0, tint, l, playerScale)
+	groups["look/cape"] = emitModelScaled(groups["look/cape"], capeMdl, []rot{capeRot(st)}, nil, pos, body, 0, [3]uint8{255, 255, 255}, l, playerScale)
+	groups["look/wings"] = emitModelScaled(groups["look/wings"], wingMdl, wingRots(st), nil, pos, body, 0, [3]uint8{255, 255, 255}, l, playerScale)
 	hook := g.net != nil && g.net.hookOf(g.net.eid) != nil
-	g.emitHeld(groups, g.held(), rots, pos, body, g.sneaking, g.bowTicks > 0, g.bowTicks, hook, l)
+	g.emitHeld(groups, g.held(), rots, pos, body, g.sneaking, false, g.bowTicks > 0, g.bowTicks, hook, l, false)
 }
 
 // playerScale is RenderPlayer.preRenderCallback's 0.9375: a player's model, and what it wears, is that much smaller
 // than the boxes it is made of (the model is 1.875 tall, not two blocks).
 const playerScale = 0.9375
-
-func markGroups(groups map[string][]vertex) map[string]int {
-	m := make(map[string]int, len(groups))
-	for k, v := range groups {
-		m[k] = len(v)
-	}
-	return m
-}
-
-// scalePlayerSince scales, about the feet, whatever was emitted since the mark.
-func scalePlayerSince(groups map[string][]vertex, mark map[string]int, pos vec3) {
-	for k, v := range groups {
-		if n := mark[k]; len(v) > n {
-			scaleVerts(v[n:], pos, playerScale, playerScale)
-		}
-	}
-}
 
 // swordIDs are the swords: held and in use, the arm goes across the chest.
 var swordIDs = idSet(267, 268, 272, 276, 283)
@@ -176,9 +172,11 @@ func (g *game) emitRemote(groups map[string][]vertex, p *remotePlayer) {
 	partial := g.partial
 	pos := p.prev.add(p.pos.sub(p.prev).scale(float64(partial)))
 	body := p.prevBody + wrapDeg(p.body-p.prevBody)*partial
+	head := p.prevHead + wrapDeg(p.headYaw-p.prevHead)*partial // the angles are interpolated between ticks too
+	pitch := p.prevPitch + (p.pitch-p.prevPitch)*partial
 	st := poseState{
 		ls: p.ls - p.lsa*(1-partial), lsa: p.lsa, age: float32(g.worldTime) + partial,
-		headYaw: wrapDeg(p.headYaw - body), headPitch: p.pitch, swing: -1, sneaking: p.sneaking,
+		headYaw: wrapDeg(head - body), headPitch: pitch, swing: -1, sneaking: p.sneaking,
 		holding: !p.held.empty(), blocking: p.using && swordIDs[p.held.ID], aiming: p.using && p.held.ID == 261,
 	}
 	if p.swing > 0 {
@@ -194,15 +192,32 @@ func (g *game) emitRemote(groups map[string][]vertex, p *remotePlayer) {
 		f := float32(math.Sqrt(math.Max(0, float64((float32(p.deathTime)+partial-1)/20*1.6))))
 		tilt = min(f, 1) * math.Pi / 2
 	}
-	rots := playerRots(st)
-	mark := markGroups(groups)
+	var rb [12]rot
+	playerRotsInto(rb[:], st)
+	rots := rb[:]
+	skin, slim := g.skinFor(p)
 	if !p.invisible {
-		groups["look/skin"] = emitModel(groups["look/skin"], playerMdl, rots, pos, body, tilt, tint, l)
+		mdl := playerMdl
+		if slim {
+			mdl = playerSlim
+		}
+		groups[skin] = emitModelScaled(groups[skin], mdl, rots, nil, pos, body, tilt, tint, l, playerScale)
 	}
-	emitArmor(groups, p.armor, p.armorX, rots, pos, body, tilt, tint, l)
-	scalePlayerSince(groups, mark, pos)
+	emitArmor(groups, p.armor, p.armorX, rots, pos, body, tilt, tint, l, playerScale)
 	if !p.dead {
 		hook := g.net != nil && g.net.hookOf(p.eid) != nil
-		g.emitHeld(groups, p.held, rots, pos, body, p.sneaking, p.using, p.useTicks, hook, l)
+		d := pos.sub(g.camPos)
+		g.emitHeld(groups, p.held, rots, pos, body, p.sneaking, slim, p.using, p.useTicks, hook, l, d.dot(d) > 24*24)
 	}
+}
+
+// offScreen is whether something at p, about r blocks across, cannot be seen: behind the camera, or farther
+// than the world is drawn. A player is not worth building a model for then.
+func (g *game) offScreen(p vec3, r float64) bool {
+	d := p.sub(g.camPos)
+	if d.dot(g.camDir) < -r {
+		return true
+	}
+	far := float64(g.viewDist()*16) + 32
+	return d.dot(d) > far*far
 }

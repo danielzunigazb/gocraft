@@ -142,11 +142,62 @@ func toWorld(x, y, z, yawDeg float32, pos vec3, tilt float32) vec3 {
 
 // emitModel adds a posed model's quads, lit and tinted, to out.
 func emitModel(out []vertex, m *mmodel, rots []rot, pos vec3, yawDeg, tilt float32, tint [3]uint8, light uint8) []vertex {
-	return emitModelParts(out, m, rots, nil, pos, yawDeg, tilt, tint, light)
+	return emitModelScaled(out, m, rots, nil, pos, yawDeg, tilt, tint, light, 1)
 }
 
 // emitModelParts is emitModel for some of the parts: those the mask lists (nil: all of them).
 func emitModelParts(out []vertex, m *mmodel, rots []rot, mask []bool, pos vec3, yawDeg, tilt float32, tint [3]uint8, light uint8) []vertex {
+	return emitModelScaled(out, m, rots, mask, pos, yawDeg, tilt, tint, light, 1)
+}
+
+// m3 is a 3 x 3 turn, row by row.
+type m3 [9]float32
+
+// partTurn is the turn place() gives a point for a part's angles: about x, then y, then z, then the extra turn
+// about x. Worked out once for a part, it is what every point of the part is multiplied by.
+func partTurn(r rot) m3 {
+	turn := func(x, y, z float32) (float32, float32, float32) {
+		if r.x != 0 {
+			c, s := float32(math.Cos(float64(r.x))), float32(math.Sin(float64(r.x)))
+			y, z = y*c-z*s, y*s+z*c
+		}
+		if r.y != 0 {
+			c, s := float32(math.Cos(float64(r.y))), float32(math.Sin(float64(r.y)))
+			x, z = x*c+z*s, -x*s+z*c
+		}
+		if r.z != 0 {
+			c, s := float32(math.Cos(float64(r.z))), float32(math.Sin(float64(r.z)))
+			x, y = x*c-y*s, x*s+y*c
+		}
+		if r.ox != 0 {
+			c, s := float32(math.Cos(float64(r.ox))), float32(math.Sin(float64(r.ox)))
+			y, z = y*c-z*s, y*s+z*c
+		}
+		return x, y, z
+	}
+	a0, a1, a2 := turn(1, 0, 0)
+	b0, b1, b2 := turn(0, 1, 0)
+	c0, c1, c2 := turn(0, 0, 1)
+	return m3{a0, b0, c0, a1, b1, c1, a2, b2, c2}
+}
+
+// emitModelScaled is emitModelParts with the whole model scaled about the entity's feet (a player is
+// 0.9375 of the boxes it is made of). The trigonometry is done once per part and once per model, not per point.
+func emitModelScaled(out []vertex, m *mmodel, rots []rot, mask []bool, pos vec3, yawDeg, tilt float32, tint [3]uint8, light uint8, scale float64) []vertex {
+	ya := float64(180-yawDeg) * math.Pi / 180
+	yc, ys := math.Cos(ya), math.Sin(ya)
+	tc, ts := float32(1), float32(0)
+	if tilt != 0 { // lying down as a dying mob does: a turn about the front-to-back axis
+		tc, ts = float32(math.Cos(float64(tilt))), float32(math.Sin(float64(tilt)))
+	}
+	world := func(x, y, z float32) vec3 {
+		wx, wy, wz := -x/16, 1.5078125-y/16, z/16
+		if tilt != 0 {
+			wx, wy = wx*tc-wy*ts, wx*ts+wy*tc
+		}
+		fx, fy, fz := float64(wx), float64(wy), float64(wz)
+		return vec3{pos[0] + (fx*yc+fz*ys)*scale, pos[1] + fy*scale, pos[2] + (-fx*ys+fz*yc)*scale}
+	}
 	for pi := range m.parts {
 		if mask != nil && !mask[pi] {
 			continue
@@ -157,21 +208,23 @@ func emitModelParts(out []vertex, m *mmodel, rots []rot, mask []bool, pos vec3, 
 			o := rots[pi]
 			r.x, r.y, r.z, r.dx, r.dy, r.dz, r.ox = r.x+o.x, r.y+o.y, r.z+o.z, o.dx, o.dy, o.dz, o.ox
 		}
+		turn := partTurn(r)
+		px, py, pz := p.px+r.dx, p.py+r.dy, p.pz+r.dz
 		for _, bq := range m.quads[pi] {
 			for _, q := range bq {
 				var w [4]vec3
 				for k := 0; k < 4; k++ {
-					x, y, z := place(p, r, q[k])
-					w[k] = toWorld(x, y, z, yawDeg, pos, tilt)
+					v := q[k]
+					w[k] = world(turn[0]*v.x+turn[1]*v.y+turn[2]*v.z+px, turn[3]*v.x+turn[4]*v.y+turn[5]*v.z+py, turn[6]*v.x+turn[7]*v.y+turn[8]*v.z+pz)
 				}
-				n := w[1].sub(w[0]).cross(w[3].sub(w[0])).norm() // the face's normal, for a little shading
+				n := w[1].sub(w[0]).cross(w[3].sub(w[0])) // the face's normal, for a little shading: squares, so no root
 				shade := float32(0.8)
-				switch {
-				case n[1] > 0.5:
+				switch l2 := n[0]*n[0] + n[1]*n[1] + n[2]*n[2]; {
+				case n[1] > 0 && n[1]*n[1] > 0.25*l2:
 					shade = 1
-				case n[1] < -0.5:
+				case n[1] < 0 && n[1]*n[1] > 0.25*l2:
 					shade = 0.5
-				case math.Abs(float64(n[0])) > math.Abs(float64(n[2])):
+				case math.Abs(n[0]) > math.Abs(n[2]):
 					shade = 0.6
 				}
 				c := [4]uint8{uint8(float32(tint[0]) * shade), uint8(float32(tint[1]) * shade), uint8(float32(tint[2]) * shade), light}

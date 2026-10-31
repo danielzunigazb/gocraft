@@ -25,10 +25,14 @@ func heldModelName(it slot, using bool, useTicks int, hookOut bool) string {
 
 // heldMatrix puts the item's own space (the picture centred on the origin, one block across) into the world
 // around a player at pos: the entity's turn and scale, the right arm as posed, the hand, the model's display.
-func heldMatrix(rots []rot, body float32, sneaking bool, display mat4) mat4 {
+func heldMatrix(rots []rot, body float32, sneaking, slim bool, display mat4) mat4 {
 	r := rots[pRArm]
 	const rad2deg = 180 / math.Pi
-	arm := translateM((-5+r.dx)/16, (2+r.dy)/16, r.dz/16).then(rotZM(r.z*rad2deg), rotYM(r.y*rad2deg), rotXM(r.x*rad2deg))
+	pivotY := float32(2)
+	if slim {
+		pivotY = 2.5
+	}
+	arm := translateM((-5+r.dx)/16, (pivotY+r.dy)/16, r.dz/16).then(rotZM(r.z*rad2deg), rotYM(r.y*rad2deg), rotXM(r.x*rad2deg))
 	m := rotYM(180-body).then(scaleM(-1, -1, 1), scaleM(playerScale, playerScale, playerScale), translateM(0, -1.5078125, 0),
 		arm, translateM(-0.0625, 0.4375, 0.0625))
 	if sneaking {
@@ -38,7 +42,7 @@ func heldMatrix(rots []rot, body float32, sneaking bool, display mat4) mat4 {
 }
 
 // emitHeld adds the item in a player's hand to the groups.
-func (g *game) emitHeld(groups map[string][]vertex, it slot, rots []rot, pos vec3, body float32, sneaking, using bool, useTicks int, hookOut bool, light uint8) {
+func (g *game) emitHeld(groups map[string][]vertex, it slot, rots []rot, pos vec3, body float32, sneaking, slim, using bool, useTicks int, hookOut bool, light uint8, far bool) {
 	if it.empty() {
 		return
 	}
@@ -56,7 +60,7 @@ func (g *game) emitHeld(groups map[string][]vertex, it slot, rots []rot, pos vec
 		if len(vs) == 0 || len(vs[0].quads) == 0 {
 			return
 		}
-		m := heldMatrix(rots, body, sneaking, ident())
+		m := heldMatrix(rots, body, sneaking, slim, ident())
 		if flatBlocks[it.ID] { // a plant, a torch: its picture, with the display of the item model of the block
 			q0 := vs[0].quads[0]
 			tint := white
@@ -95,8 +99,12 @@ func (g *game) emitHeld(groups map[string][]vertex, it slot, rots []rot, pos vec
 	if !found { // an item model with no display of its own: a flat item held at the hand
 		x = itemXform{tr: [3]float32{0, 3, 1}, sc: [3]float32{0.55, 0.55, 0.55}}
 	}
-	m := heldMatrix(rots, body, sneaking, x.matrix())
-	for _, q := range g.hand.sprite(g.res.items, tile) {
+	m := heldMatrix(rots, body, sneaking, slim, x.matrix())
+	quads := g.hand.sprite(g.res.items, tile)
+	if far && len(quads) > 2 { // too far to see the item's thickness: only its two faces
+		quads = quads[:2]
+	}
+	for _, q := range quads {
 		add("!items", m, q, white)
 	}
 }
