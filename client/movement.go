@@ -146,6 +146,8 @@ func (g *game) tick(in input) {
 		g.tickWaiting()
 		return
 	}
+	g.ticks++
+	g.tickDamage()
 	y0 := g.feet[1]
 	defer g.tickSurvival(y0)
 	g.prevFeet = g.feet

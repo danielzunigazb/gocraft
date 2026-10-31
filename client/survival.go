@@ -38,6 +38,9 @@ func (g *game) mine() {
 	h, ok := g.target()
 	hit := h.pos
 	if !ok || g.opt.Bench > 0 || !g.keyDown("attack") {
+		if g.mining {
+			g.setDamage(g.selfKey(), g.mineAt, -1)
+		}
 		g.mining = false
 		return
 	}
@@ -54,8 +57,10 @@ func (g *game) mine() {
 	g.blockHitEffect(hit, h.side, state)
 	g.blockHitSound(hit, state, g.mineTicksDone)
 	if g.mineTicksDone++; g.mineTicksDone < need {
+		g.setDamage(g.selfKey(), hit, int(float32(g.mineTicksDone)/float32(need)*10)-1) // PlayerControllerMP's (int)(damage * 10) - 1
 		return
 	}
+	g.setDamage(g.selfKey(), hit, -1)
 	g.beBroken(hit)
 	g.setBlock(hit[0], hit[1], hit[2], 0)
 	g.exhaust(0.025)

@@ -153,6 +153,11 @@ type game struct {
 	partial                    float32
 	items                      []*itemEntity
 	entBlocks, entFlat         entityMesh
+	ticks                      int                    // game ticks run, for what expires after a while
+	damage                     map[int32]*blockDamage // cracks of blocks being mined, by who mines them
+	crackVerts                 []vertex
+	crackMesh                  entityMesh
+	keyHeld                    func(action string) bool // tests: which keys are down when there is no window
 	entMobs                    entityMesh
 	debug                      bool
 	frames                     frameStats
@@ -686,6 +691,9 @@ func (g *game) loop() error {
 		case "netparticles":
 			g.netDemo(false)
 			g.particlesDemo()
+		case "cracks":
+			g.fb = [2]int{g.opt.Width, g.opt.Height}
+			g.cracksDemo()
 		case "chests", "chest", "bigchest", "furnace":
 			g.beScreenshot(g.opt.Screen)
 		case "sounds":
@@ -1077,7 +1085,7 @@ func (g *game) bindKey(key glfw.Key) {
 // keyDown reports whether the key or mouse button bound to an action is held.
 func (g *game) keyDown(action string) bool {
 	if g.win == nil {
-		return false
+		return g.keyHeld != nil && g.keyHeld(action) // a test holds keys without a window
 	}
 	code := g.opts.Keys[action]
 	if isMouseCode(code) {

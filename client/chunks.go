@@ -401,6 +401,7 @@ func (g *game) drawChunks(mvp *mat4) {
 	t0 = time.Now()
 	g.drawItems()
 	g.drawMobs()
+	g.drawCracks()
 	cpuT.ents.add(since(t0))
 	gpuWorld.mark()
 

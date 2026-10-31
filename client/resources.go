@@ -191,6 +191,7 @@ func loadResources(jarPath string, packs []string) (*resources, error) {
 	extra = append(extra, "armor/leather_layer_1_overlay", "armor/leather_layer_2_overlay")
 	extra = append(extra, netMobTextures...)
 	extra = append(extra, "explosion") // the frames of a big explosion puff
+	extra = append(extra, crackPaths()...)
 	for _, k := range kinds {
 		extra = append(extra, k.tex, k.fur)
 		extra = append(extra, k.texVariants...)
@@ -207,11 +208,15 @@ func loadResources(jarPath string, packs []string) (*resources, error) {
 			if strings.HasPrefix(path, "armor/") { // what is worn is under models/
 				dir = "models/"
 			}
+			if strings.HasPrefix(path, "blocks/") { // the cracks of mining
+				dir = ""
+			}
 			if img, err := p.png("assets/minecraft/textures/" + dir + path + ".png"); err == nil {
 				r.entity[path] = img
 			}
 		}
 	}
+	makeCrackStrip(r.entity)
 	if img, err := p.png("assets/minecraft/textures/particle/particles.png"); err == nil { // the particle sprite sheet
 		r.entity["particles"] = img
 	}
