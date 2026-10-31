@@ -368,14 +368,20 @@ func (g *game) demo() {
 	g.yaw, g.pitch = 0, 0.25
 }
 
-func (g *game) setBlock(x, y, z int32, state uint16) {
+func (g *game) setBlock(x, y, z int32, state uint16) { g.changeBlock(x, y, z, state, true) }
+
+// changeBlock sets a block; with fx a block that breaks or is placed shows its pieces and is heard. A server's
+// block changes do not: the server sends those as Effect 2001 and Sound Effect, as the game has it.
+func (g *game) changeBlock(x, y, z int32, state uint16, fx bool) {
 	if !world.InRange(y) {
 		return
 	}
 	if state == 0 {
 		defer g.portalBroken([3]int32{x, y, z}) // a portal whose frame was broken goes out
 	}
-	g.blockEffects(x, y, z, g.world.Block(x, y, z), state) // particles (and sound) for a block that breaks or is placed
+	if fx {
+		g.blockEffects(x, y, z, g.world.Block(x, y, z), state) // particles (and sound) for a block that breaks or is placed
+	}
 	// Changing a block also changes the light around it: every column the light touched is meshed again.
 	for _, c := range g.world.SetBlockLit(x, y, z, state) {
 		g.dirty[c] = true
@@ -677,6 +683,9 @@ func (g *game) loop() error {
 		case "netmobs":
 			g.netDemo(false)
 			g.mobsDemo()
+		case "netparticles":
+			g.netDemo(false)
+			g.particlesDemo()
 		case "chests", "chest", "bigchest", "furnace":
 			g.beScreenshot(g.opt.Screen)
 		case "sounds":

@@ -197,3 +197,32 @@ func (g *game) mobsDemo() {
 		g.net.addEntity(e)
 	}
 }
+
+// particlesDemo shows what servers send most: a ring of coloured dust, hearts, notes, potion swirls, green
+// sparkles, flames, portal specks, crits and a big explosion puff, a few ticks old.
+func (g *game) particlesDemo() {
+	f := look(g.yaw, 0)
+	right := vec3{-f[2], 0, f[0]}
+	mid := g.pos.add(f.scale(5)).sub(vec3{0, 0.6, 0})
+	for i := 0; i < 24; i++ { // a rainbow ring
+		a := float64(i) / 24 * 2 * math.Pi
+		at := mid.add(right.scale(math.Cos(a) * 1.4)).add(vec3{0, math.Sin(a) * 1.4, 0})
+		c := float64(i) / 24
+		g.spawnFX(ptRedDust, true, at, vec3{0.01 + 0.99*math.Max(0, math.Cos(c*2*math.Pi)), math.Max(0, math.Sin(c*2*math.Pi)), math.Max(0, -math.Cos(c*2*math.Pi))}, nil)
+	}
+	side := func(k float64) vec3 { return mid.add(right.scale(k)) }
+	g.netParticles(ptHeart, true, side(-3.2), vec3{0.4, 0.3, 0.4}, 0, 5, nil)
+	g.netParticles(ptNote, true, side(3.2), vec3{0.4, 0.3, 0.4}, 1, 6, nil)
+	g.netParticles(ptMobSpell, true, side(-2.4).sub(vec3{0, 1, 0}), vec3{0.3, 0.4, 0.3}, 1, 0, nil)
+	for i := 0; i < 12; i++ {
+		g.spawnFX(ptMobSpell, true, side(-2.4).add(vec3{rng.NormFloat64() * 0.3, rng.NormFloat64()*0.4 - 1, rng.NormFloat64() * 0.3}), vec3{0.2, 0.8, 0.3}, nil)
+	}
+	g.netParticles(ptHappyVillager, true, side(0).sub(vec3{0, 1.2, 0}), vec3{0.5, 0.2, 0.5}, 0, 15, nil)
+	g.netParticles(ptFlame, true, side(2.4).sub(vec3{0, 1, 0}), vec3{0.2, 0.2, 0.2}, 0.01, 10, nil)
+	g.netParticles(ptPortal, true, side(1.2).add(vec3{0, 0.3, 0}), vec3{0.3, 0.3, 0.3}, 0.5, 20, nil)
+	g.netParticles(ptMagicCrit, true, side(-1.2).add(vec3{0, 0.3, 0}), vec3{0.3, 0.3, 0.3}, 0.3, 15, nil)
+	g.spawnFX(ptLargeExplode, true, mid.add(f.scale(4)).add(vec3{0, 1.5, 0}), vec3{0.2, 0, 0}, nil)
+	for i := 0; i < 3; i++ {
+		g.tickParticles()
+	}
+}

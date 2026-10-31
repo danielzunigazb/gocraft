@@ -821,6 +821,10 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 			return nil
 		}
 		return func(g *game) {
+			if anim == 4 || anim == 5 { // a critical hit, and an enchanted weapon's: sparks around whoever took it
+				g.netCritSparks(eid, anim == 5)
+				return
+			}
 			if p := g.net.remote[eid]; p != nil {
 				switch anim {
 				case 0:
@@ -832,6 +836,46 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 				e.mob.m.hurtTime = 10 // performHurtAnimation
 			}
 		}
+	case 0x2A: // particle
+		id := r.Int()
+		far := r.Bool()
+		at := vec3{float64(r.Float()), float64(r.Float()), float64(r.Float())}
+		off := vec3{float64(r.Float()), float64(r.Float()), float64(r.Float())}
+		speed, count := r.Float(), r.Int()
+		var args []int32
+		for i := 0; i < particleArgs(id); i++ {
+			args = append(args, r.VarInt())
+		}
+		if r.Err() != nil {
+			return nil
+		}
+		return func(g *game) { g.netParticles(id, far, at, off, speed, count, args) }
+	case 0x27: // explosion
+		at := vec3{float64(r.Float()), float64(r.Float()), float64(r.Float())}
+		strength := r.Float()
+		n := int(r.Int())
+		bx, by, bz := int32(at[0]), int32(at[1]), int32(at[2]) // the records are relative to the truncated middle
+		blocks := make([][3]int32, 0, min(max(n, 0), 4096))
+		for i := 0; i < n && r.Err() == nil; i++ {
+			dx, dy, dz := int32(int8(r.Byte())), int32(int8(r.Byte())), int32(int8(r.Byte()))
+			if len(blocks) < cap(blocks) {
+				blocks = append(blocks, [3]int32{bx + dx, by + dy, bz + dz})
+			}
+		}
+		push := vec3{float64(r.Float()), float64(r.Float()), float64(r.Float())}
+		if r.Err() != nil {
+			return nil
+		}
+		return func(g *game) { g.netExplosion(at, strength, blocks, push) }
+	case 0x28: // effect: the sounds and particles of the world (a block broken, a door, a potion)
+		effect := r.Int()
+		x, y, z := proto.UnpackPos(r.Long())
+		data := r.Int()
+		r.Bool() // heard everywhere: the wither's and the dragon's, which gocraft does not play
+		if r.Err() != nil {
+			return nil
+		}
+		return func(g *game) { g.netEffect(effect, x, y, z, data) }
 	case 0x38: // player list: names, skins, ping, game modes
 		return parseTabList(r)
 	case 0x47: // player list header and footer
@@ -876,7 +920,7 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 		}
 		return func(g *game) {
 			for _, b := range recs {
-				g.setBlock(b.x, b.y, b.z, b.st)
+				g.changeBlock(b.x, b.y, b.z, b.st, false)
 			}
 		}
 	case 0x15, 0x16, 0x17: // relative move, look, both
@@ -937,7 +981,7 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 		if r.Err() != nil {
 			return nil
 		}
-		return func(g *game) { g.setBlock(x, y, z, uint16(st)) }
+		return func(g *game) { g.changeBlock(x, y, z, uint16(st), false) }
 	case 0x2F: // set slot
 		win := int8(r.Byte())
 		idx := int(r.Short())

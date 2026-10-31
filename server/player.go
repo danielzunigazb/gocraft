@@ -361,11 +361,15 @@ func (p *Player) handle(s *Server, id int32, r *proto.Reader) {
 		} else if status != 0 {
 			return
 		}
-		if s.world.Block(x, y, z)>>4 == 7 { // bedrock stays
-			p.send(BlockChangePacket(x, y, z, s.world.Block(x, y, z)))
+		old := s.world.Block(x, y, z)
+		if old>>4 == 7 { // bedrock stays
+			p.send(BlockChangePacket(x, y, z, old))
 			return
 		}
 		s.setBlock(x, y, z, 0)
+		if old != 0 {
+			s.sendOthers(p, BreakEffectPacket(x, y, z, old))
+		}
 
 	case 0x08: // block placement
 		x, y, z := proto.UnpackPos(r.Long())

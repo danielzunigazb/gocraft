@@ -155,6 +155,17 @@ func TestPlaceBreakAndChat(t *testing.T) {
 			t.Fatalf("after break: %d", st)
 		}
 	}
+	// Alice sees the pieces of Bob's stone (Effect 2001 with the game's state id); Bob makes his own.
+	fx := a.until(0x28)
+	if id := fx.Int(); id != 2001 {
+		t.Fatalf("effect %d, want 2001", id)
+	}
+	if x, y, z := proto.UnpackPos(fx.Long()); x != 0 || y != 4 || z != 0 {
+		t.Fatalf("effect at %d,%d,%d", x, y, z)
+	}
+	if data := fx.Int(); data != 1 {
+		t.Fatalf("effect data %d, want 1 (stone)", data)
+	}
 
 	// Bedrock does not break.
 	dig = proto.NewPacket(0x07)

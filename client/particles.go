@@ -35,6 +35,8 @@ type particle struct {
 	ju, jv         float32 // dig: which quarter of the tile, 0..3
 	gravity        float32
 	rgb            [3]float32
+	origin         vec3  // a portal or enchanting particle: where it flies from
+	base           int32 // a spell: the first sprite of its animation
 }
 
 // critEmitter is EntityParticleEmitter: a few ticks of sparks around a creature that was hit hard.
@@ -42,16 +44,19 @@ type critEmitter struct {
 	at    vec3
 	w, h  float32
 	ticks int
+	magic bool // the blue sparks of an enchanted weapon (CRIT_MAGIC)
 }
 
 type particleSystem struct {
 	list     []particle // the live ones; its capacity is the pool
 	next     int        // where the next one goes when the pool is full: the oldest are replaced first
 	emitters []critEmitter
-	scratch  []aabb // the boxes of the block a particle is in, kept between calls
-	// vertices rebuilt each frame into storage that is kept: one batch for the block atlas, one for the sheet
-	atlasVerts, sheetVerts []vertex
-	mesh                   [2]entityMesh
+	huge     []hugeEmitter // explosions throwing their big puffs for eight ticks
+	scratch  []aabb        // the boxes of the block a particle is in, kept between calls
+	// vertices rebuilt each frame into storage that is kept: one batch for the block atlas, one for the sheet,
+	// one for the item icons (pieces of a broken item) and one for the explosion's frames
+	atlasVerts, sheetVerts, itemVerts, boomVerts []vertex
+	mesh                                         [4]entityMesh
 }
 
 // particles is the pool, made on first use.
@@ -63,7 +68,7 @@ func (g *game) particles() *particleSystem {
 }
 
 func newParticleSystem() *particleSystem {
-	return &particleSystem{list: make([]particle, 0, maxParticles), emitters: make([]critEmitter, 0, 8),
+	return &particleSystem{list: make([]particle, 0, maxParticles), emitters: make([]critEmitter, 0, 8), huge: make([]hugeEmitter, 0, 8),
 		atlasVerts: make([]vertex, 0, 4*maxParticles), sheetVerts: make([]vertex, 0, 4*maxParticles)}
 }
 
@@ -181,12 +186,20 @@ func (ps *particleSystem) spawnCrit(e critEmitter) {
 			continue
 		}
 		at := vec3{e.at[0] + d[0]*float64(e.w)/4, e.at[1] + float64(e.h)/2 + d[1]*float64(e.h)/4, e.at[2] + d[2]*float64(e.w)/4}
-		// EntityCrit2FX: the random shake of EntityFX times 0.1, then the given speed times 0.4.
-		v := speedFrom(vec3{}).scale(0.1).add(vec3{d[0], d[1] + 0.2, d[2]}.scale(0.4))
-		g := rnd()*0.3 + 0.6
-		ps.add(particle{pos: at, prev: at, vel: v, kind: pCrit, scale: 0.75 * (rnd()*0.5 + 0.5) * 2, tile: 65,
-			max: int32(6 / (float64(rnd())*0.8 + 0.2)), rgb: [3]float32{g, g, g}})
+		ps.add(critFX(at, vec3{d[0], d[1] + 0.2, d[2]}, e.magic))
 	}
+}
+
+// critFX is EntityCrit2FX: the random shake of EntityFX times 0.1, then the given speed times 0.4, grey;
+// the magic kind (CRIT_MAGIC) is tinted blue and uses the next sprite.
+func critFX(at, v vec3, magic bool) particle {
+	g := rnd()*0.3 + 0.6
+	p := particle{pos: at, prev: at, vel: fxShake(vec3{}).scale(0.1).add(v.scale(0.4)), kind: pCrit, scale: 0.75 * (rnd()*0.5 + 0.5) * 2, tile: 65,
+		max: int32(6 / (float64(rnd())*0.8 + 0.2)), rgb: [3]float32{g, g, g}}
+	if magic {
+		p.rgb[0], p.rgb[1], p.tile = g*0.3, g*0.8, 66
+	}
+	return p
 }
 
 // torchEffect is BlockTorch.randomDisplayTick: smoke and a flame at the top of the torch.
@@ -215,6 +228,7 @@ func (g *game) torchEffect(x, y, z int32, meta int) {
 func (g *game) tickParticles() {
 	ps := g.particles()
 	g.torchSample()
+	g.tickHuge()
 	for i := 0; i < len(ps.emitters); {
 		ps.spawnCrit(ps.emitters[i])
 		if ps.emitters[i].ticks--; ps.emitters[i].ticks <= 0 {
@@ -255,6 +269,9 @@ func (g *game) torchSample() {
 
 // stepParticle ages and moves one particle (EntityFX.onUpdate and its subclasses); false when it is gone.
 func (g *game) stepParticle(p *particle) bool {
+	if p.kind >= pReddust {
+		return g.stepFX(p)
+	}
 	p.prev = p.pos
 	if p.age++; p.age >= p.max {
 		return false
@@ -270,24 +287,7 @@ func (g *game) stepParticle(p *particle) bool {
 		p.rgb[2] *= 0.9
 		p.vel[1] -= 0.02
 	}
-	// A particle is stopped by opaque blocks, axis by axis (y first), without any allocation.
-	var moved vec3
-	for _, axis := range [3]int{1, 0, 2} {
-		next := p.pos
-		next[axis] += p.vel[axis]
-		if g.particleSolid(next) {
-			moved[axis] = 0
-			continue
-		}
-		moved[axis] = p.vel[axis]
-		p.pos = next
-	}
-	p.onGround = moved[1] != p.vel[1] && p.vel[1] < 0
-	for a := 0; a < 3; a++ {
-		if moved[a] != p.vel[a] {
-			p.vel[a] = 0
-		}
-	}
+	g.moveParticle(p)
 	drag := float32(0.98)
 	switch p.kind {
 	case pFlame, pSmoke:
@@ -305,16 +305,42 @@ func (g *game) stepParticle(p *particle) bool {
 	return true
 }
 
+// moveParticle moves a particle by its motion: it is stopped by opaque blocks, axis by axis (y first),
+// without any allocation.
+func (g *game) moveParticle(p *particle) {
+	var moved vec3
+	for _, axis := range [3]int{1, 0, 2} {
+		next := p.pos
+		next[axis] += p.vel[axis]
+		if g.particleSolid(next) {
+			moved[axis] = 0
+			continue
+		}
+		moved[axis] = p.vel[axis]
+		p.pos = next
+	}
+	p.onGround = moved[1] != p.vel[1] && p.vel[1] < 0
+	for a := 0; a < 3; a++ {
+		if moved[a] != p.vel[a] {
+			p.vel[a] = 0
+		}
+	}
+}
+
 // buildParticles lays every live particle out as a quad facing the camera, into the two batches. light
 // gives the light byte at a position. partial is how far into the tick this frame is.
 func (ps *particleSystem) build(res *resources, right, up vec3, partial float32, light func(vec3) uint8) {
-	ps.atlasVerts, ps.sheetVerts = ps.atlasVerts[:0], ps.sheetVerts[:0]
+	ps.atlasVerts, ps.sheetVerts, ps.itemVerts, ps.boomVerts = ps.atlasVerts[:0], ps.sheetVerts[:0], ps.itemVerts[:0], ps.boomVerts[:0]
 	for i := range ps.list {
 		p := &ps.list[i]
 		pos := p.prev.add(p.pos.sub(p.prev).scale(float64(partial)))
 		size := 0.1 * p.scale
 		rgb := p.rgb
 		l := uint8(0xFF) // fire does not need light
+		if p.kind >= pReddust {
+			ps.buildFX(res, p, pos, right, up, partial, light)
+			continue
+		}
 		switch p.kind {
 		case pDig:
 			l = light(pos)
@@ -325,6 +351,8 @@ func (ps *particleSystem) build(res *resources, right, up vec3, partial float32,
 		case pFlame:
 			f := (float32(p.age) + partial) / float32(p.max)
 			size *= 1 - f*f*0.5
+		case pCrit: // EntityCrit2FX.renderParticle: it grows to its size in its first thirty-second of life
+			size *= min(max((float32(p.age)+partial)/float32(p.max)*32, 0), 1)
 		}
 		var u0, v0, u1, v1 float32
 		if p.kind == pDig {
@@ -369,8 +397,16 @@ func (g *game) drawParticles() {
 	if tex, ok := g.mobTex["particles"]; ok && len(ps.sheetVerts) > 0 {
 		gl.BindTexture(gl.TEXTURE_2D, tex)
 		ps.mesh[1].draw(ps.sheetVerts)
-		gl.BindTexture(gl.TEXTURE_2D, g.tex)
 	}
+	if len(ps.itemVerts) > 0 {
+		gl.BindTexture(gl.TEXTURE_2D, g.hud.itemTex)
+		ps.mesh[2].draw(ps.itemVerts)
+	}
+	if tex, ok := g.mobTex["explosion"]; ok && len(ps.boomVerts) > 0 {
+		gl.BindTexture(gl.TEXTURE_2D, tex)
+		ps.mesh[3].draw(ps.boomVerts)
+	}
+	gl.BindTexture(gl.TEXTURE_2D, g.tex)
 	gl.Enable(gl.CULL_FACE)
 }
 

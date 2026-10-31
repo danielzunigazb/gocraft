@@ -82,6 +82,17 @@ func UnloadPacket(cp world.ChunkPos) []byte {
 	return p.Frame()
 }
 
+// BreakEffectPacket is Effect 2001: the others see the pieces of a broken block and hear it (the one who
+// broke it makes them itself). The data is the game's state id: the block id plus its meta times 4096.
+func BreakEffectPacket(x, y, z int32, state uint16) []byte {
+	p := proto.NewPacket(0x28)
+	p.Int(2001)
+	p.Long(proto.PackPos(x, y, z))
+	p.Int(int32(state>>4) | int32(state&15)<<12)
+	p.Bool(false)
+	return p.Frame()
+}
+
 func BlockChangePacket(x, y, z int32, state uint16) []byte {
 	p := proto.NewPacket(0x23)
 	p.Long(proto.PackPos(x, y, z))
