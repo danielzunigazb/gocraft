@@ -35,6 +35,7 @@ type mobKind struct {
 	hops        bool     // a rabbit: moves only by hopping
 	yoff        float32  // its model is drawn this much higher
 	dropsFn     func() []slot
+	fullbright  bool // it is drawn at full brightness (a blaze)
 }
 
 type mob struct {

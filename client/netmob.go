@@ -14,6 +14,7 @@ import (
 var netMobTypes = map[byte]string{
 	50: "Creeper", 51: "Skeleton", 52: "Spider", 54: "Zombie", 55: "Slime", 57: "Zombie", 59: "CaveSpider",
 	65: "Bat", 66: "Witch", 90: "Pig", 91: "Sheep", 92: "Cow", 93: "Chicken", 94: "Squid", 101: "Rabbit", 120: "Villager",
+	58: "Enderman", 61: "Blaze", 95: "Wolf", 99: "VillagerGolem",
 }
 
 const (
@@ -22,7 +23,7 @@ const (
 )
 
 // netMobTextures are the textures of the server's mobs that gocraft's own do not use.
-var netMobTextures = []string{"zombie_pigman", "skeleton/wither_skeleton"}
+var netMobTextures = []string{"zombie_pigman", "skeleton/wither_skeleton", "wolf/wolf_tame", "wolf/wolf_angry"}
 
 // netMob is the drawn part of a server's mob: a gocraft mob that the server moves.
 type netMob struct {
@@ -87,6 +88,18 @@ func (n *netMob) apply(meta map[int]any) {
 	case "Creeper":
 		if v, ok := meta[16].(int); ok {
 			n.creeperState = v
+		}
+	case "Wolf": // flags: 1 sitting, 2 angry, 4 tamed
+		if v, ok := meta[16].(int); ok {
+			m.angry = v&2 != 0
+			switch {
+			case v&2 != 0:
+				m.tex = "wolf/wolf_angry"
+			case v&4 != 0:
+				m.tex = "wolf/wolf_tame"
+			default:
+				m.tex = ""
+			}
 		}
 	}
 	m.drawScale = n.drawScale()

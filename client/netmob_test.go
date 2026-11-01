@@ -69,9 +69,9 @@ func TestServerMobKindsAndMetadata(t *testing.T) {
 	if m := g.net.entity(22).mob.m; m.kind.id != "Zombie" || m.tex != "zombie_pigman" {
 		t.Fatalf("pigman drawn as %s with %q", m.kind.id, m.tex)
 	}
-	apply(spawnMobPacket(23, 58, 9.5, 4, 3.5, 0, 0, nil)) // an enderman: no model here
+	apply(spawnMobPacket(23, 100, 9.5, 4, 3.5, 0, 0, nil)) // a horse: no model here
 	if e := g.net.entity(23); e == nil || e.mob != nil {
-		t.Fatal("an enderman should be tracked, without a model")
+		t.Fatal("a horse should be tracked, without a model")
 	}
 	if _, ok := testRes.entity["zombie_pigman"]; !ok {
 		t.Fatal("the pigman's texture is not loaded")
@@ -176,5 +176,23 @@ func TestAttackingAServerMob(t *testing.T) {
 	}
 	if !g.sprinting || g.vel[2] != 0.2 {
 		t.Fatalf("hitting a mob slowed the sprint: sprinting %v vel %v", g.sprinting, g.vel)
+	}
+}
+
+// Every kind of mob poses each part of its model, and the ones a server may send for are all known.
+func TestMobPosesMatchTheirModels(t *testing.T) {
+	for id, k := range kinds {
+		if k.model == nil || k.pose == nil {
+			continue
+		}
+		rots := k.pose(&mob{kind: k, size: 1}, 3, 0.7, 12, 10, 5)
+		if len(rots) < len(k.model.parts) {
+			t.Errorf("%s poses %d of %d parts", id, len(rots), len(k.model.parts))
+		}
+	}
+	for typ, id := range netMobTypes {
+		if kinds[id] == nil {
+			t.Errorf("server mob type %d wants kind %q, which does not exist", typ, id)
+		}
 	}
 }

@@ -89,6 +89,9 @@ func (g *game) emitMob(groups map[string][]vertex, m *mob, partial float32) {
 	lsa := m.limbAmount
 	rots := k.pose(m, ls, lsa, age, m.headYaw, m.pitch)
 	light := g.world.Light(int32(math.Floor(float64(pos[0]))), int32(math.Floor(float64(pos[1]+0.5))), int32(math.Floor(float64(pos[2]))))
+	if k.fullbright {
+		light = 0xFF
+	}
 	tint := [3]uint8{255, 255, 255}
 	if m.hurtTime > 0 || m.dead() {
 		tint = [3]uint8{255, 110, 110}
