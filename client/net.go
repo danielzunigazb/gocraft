@@ -87,6 +87,7 @@ type netState struct {
 	border         *worldBorder          // the world border, once a server has sent one
 	lastCorrection int                   // the tick of the last Player Position And Look, for the log
 	lastKnock      int                   // and of the last knockback
+	hitPending     bool                  // the player hit another one and the tick has not yet paid for it (pvp.go)
 	items          map[int32]*itemEntity // dropped items the server spawned; they are in g.items too
 	pickups        []*pickupFX           // items just collected, flying to who took them
 	extra          [45]itemExtra         // names and lore of the items in the player's window, by slot

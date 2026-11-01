@@ -846,6 +846,7 @@ func (g *game) loop() error {
 			acc += math.Min(frame, 0.25)
 		}
 		last = now
+		g.pumpLight() // the game takes in what the server sent at the start of each frame, not only before a tick
 		g.frames.add(float32(frame))
 		if g.opt.Bench > 0 {
 			if !warmed && now-start >= float64(g.opt.BenchWarm) { // the loading is over: count from here

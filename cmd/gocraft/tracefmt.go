@@ -43,6 +43,19 @@ func decodeTrace(dir string, id int32, payload []byte) string {
 	case dir == ">" && id == 0x02:
 		eid := r.VarInt()
 		s = fmt.Sprintf("entity %d use type %d", eid, r.VarInt())
+	case dir == "<" && id == 0x15: // an entity moves by a few 32ths of a block
+		eid := r.VarInt()
+		s = fmt.Sprintf("entity %d move %+.3f %+.3f %+.3f", eid, float64(int8(r.Byte()))/32, float64(int8(r.Byte()))/32, float64(int8(r.Byte()))/32)
+	case dir == "<" && id == 0x17:
+		eid := r.VarInt()
+		s = fmt.Sprintf("entity %d move %+.3f %+.3f %+.3f", eid, float64(int8(r.Byte()))/32, float64(int8(r.Byte()))/32, float64(int8(r.Byte()))/32)
+	case dir == "<" && id == 0x18: // an entity is put somewhere
+		eid := r.VarInt()
+		s = fmt.Sprintf("entity %d at %.3f %.3f %.3f", eid, float64(r.Int())/32, float64(r.Int())/32, float64(r.Int())/32)
+	case dir == "<" && id == 0x0c: // a player appears
+		eid := r.VarInt()
+		r.Bytes(16)
+		s = fmt.Sprintf("entity %d spawns at %.3f %.3f %.3f", eid, float64(r.Int())/32, float64(r.Int())/32, float64(r.Int())/32)
 	case dir == "<" && id == 0x06:
 		hp := r.Float()
 		s = fmt.Sprintf("health %.1f food %d", hp, r.VarInt())

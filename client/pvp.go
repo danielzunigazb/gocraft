@@ -1,6 +1,11 @@
 package client
 
-import "math"
+import (
+	"fmt"
+	"math"
+
+	"gocraft/proto"
+)
 
 // Fighting other players on a server. The server owns health and decides every blow; the client
 // aims, tells the server what it did (the attack, sprinting, blocking) and takes what comes back:
@@ -58,9 +63,21 @@ func (g *game) attackEntity(eid int32) {
 	w.VarInt(eid)
 	w.VarInt(1) // attack
 	g.net.c.send(w)
-	if g.net.remote[eid] == nil {
+	if g.net.remote[eid] != nil {
+		g.net.hitPending = true // what it costs the player is paid at the start of the next tick, see applyPendingHit
+	}
+}
+
+// applyPendingHit is what a blow on another player costs the attacker, paid where the game pays it: its clicks
+// are taken in at the start of a tick, after the server's packets of the frame, so a knockback that arrived just
+// before the click is slowed to 0.6 with the rest of the motion. Paying it in the click itself, between ticks, let
+// a knockback that was still queued replace the slowdown, and the player went on 0.14 blocks ahead of where a
+// server that expected the slowdown put them.
+func (g *game) applyPendingHit() {
+	if g.net == nil || !g.net.hitPending {
 		return
 	}
+	g.net.hitPending = false
 	if g.sprinting {
 		g.vel[0], g.vel[2] = g.vel[0]*0.6, g.vel[2]*0.6
 		g.setSprinting(false)
@@ -206,7 +223,61 @@ func (g *game) logCorrection(to vec3, flags byte) {
 	d := to.sub(g.feet)
 	since := g.ticks - n.lastCorrection
 	n.lastCorrection = g.ticks
-	logf("server moved the player: from %.3f %.3f %.3f to %.3f %.3f %.3f (%.3f away, flags %#x); %d ticks since the last; velocity %.3f %.3f %.3f ground=%v sprint=%v sneak=%v flying=%v hurt=%d knock %d ticks ago",
+	text := fmt.Sprintf("server moved the player: from %.3f %.3f %.3f to %.3f %.3f %.3f (%.3f away, flags %#x); %d ticks since the last; velocity %.3f %.3f %.3f ground=%v sprint=%v sneak=%v flying=%v hurt=%d knock %d ticks ago",
 		g.feet[0], g.feet[1], g.feet[2], to[0], to[1], to[2], math.Sqrt(d.dot(d)), flags, since, g.vel[0], g.vel[1], g.vel[2],
 		g.onGround, g.sprinting, g.sneaking, g.flying, g.hurtTime, g.ticks-n.lastKnock)
+	logf("%s", text)
+	if proto.Note != nil {
+		proto.Note(text)
+	}
+}
+
+// noteReach puts in the -netlog how far the nearest rival was when the player swung, and whether the click found
+// them: the distance from the eyes to their box, where the view's ray meets it (-1 for never), how far apart the
+// feet are, and how far the rival is drawn from where the server last put them. A blow that did not register because
+// the server's invulnerability stopped it and one that never left the client because the rival was too far are
+// different things, and the packets alone cannot tell them apart.
+func (g *game) noteReach(target int32, hit bool) {
+	if proto.Note == nil || g.net == nil {
+		return
+	}
+	var best *remotePlayer
+	bestD := math.Inf(1)
+	for _, p := range g.net.remote {
+		if p.dead {
+			continue
+		}
+		if d := p.pos.sub(g.feet); d.dot(d) < bestD {
+			best, bestD = p, d.dot(d)
+		}
+	}
+	if best == nil || bestD > 10*10 {
+		proto.Note(fmt.Sprintf("swing hit=%v: nobody within 10 blocks", hit))
+		return
+	}
+	box := playerBox(best.pos)
+	box.min, box.max = box.min.sub(vec3{0.1, 0.1, 0.1}), box.max.add(vec3{0.1, 0.1, 0.1}) // the game grows the box by a tenth
+	eyeToBox := math.Sqrt(boxDistSq(box, g.pos))
+	ray := -1.0
+	if at, _, ok := segmentBox(box, g.pos, g.pos.add(look(g.yaw, g.pitch).scale(8))); ok {
+		ray = math.Sqrt(at.sub(g.pos).dot(at.sub(g.pos)))
+	}
+	f := best.pos.sub(g.feet)
+	lag := best.target.sub(best.pos)
+	proto.Note(fmt.Sprintf("swing hit=%v (target %d) nearest=%d(%s) eyeToBox=%.2f ray=%.2f feet=%.2f (dy %+.2f) drawn %.2f behind the server's position",
+		hit, target, best.eid, best.name, eyeToBox, ray, math.Hypot(f[0], f[2]), f[1], math.Sqrt(lag.dot(lag))))
+}
+
+// boxDistSq is how far, squared, a point is from a box (0 inside it).
+func boxDistSq(b aabb, p vec3) float64 {
+	var d float64
+	for a := 0; a < 3; a++ {
+		switch {
+		case p[a] < b.min[a]:
+			d += (b.min[a] - p[a]) * (b.min[a] - p[a])
+		case p[a] > b.max[a]:
+			d += (p[a] - b.max[a]) * (p[a] - b.max[a])
+		}
+	}
+	return d
 }

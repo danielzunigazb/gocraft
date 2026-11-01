@@ -64,6 +64,11 @@ func main() {
 		defer f.Close()
 		t0 := time.Now()
 		var mu sync.Mutex
+		proto.Note = func(text string) {
+			mu.Lock()
+			defer mu.Unlock()
+			fmt.Fprintf(f, "%6dms # %s\n", time.Since(t0).Milliseconds(), text)
+		}
 		proto.Trace = func(dir string, id int32, payload []byte) {
 			mu.Lock()
 			defer mu.Unlock()

@@ -170,6 +170,7 @@ func (g *game) mobTarget() (*mob, bool) {
 func (g *game) attackClick() bool {
 	if g.net != nil { // the server's players and mobs: the server decides what the blow does
 		eid, ok := g.entityTarget()
+		g.noteReach(eid, ok)
 		if ok {
 			g.attackEntity(eid)
 		}

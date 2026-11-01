@@ -75,6 +75,7 @@ func TestSprintHitSlowsTheAttackerAndKnocksTheTargetBackFurther(t *testing.T) {
 	if !a.attackClick() {
 		t.Fatal("no hit")
 	}
+	a.applyPendingHit() // paid at the start of the next tick
 	if a.sprinting || !near(a.vel[2], 0.18, 1e-4) {
 		t.Fatalf("the attacker's sprint %v, velocity %v: want the sprint ended and the motion at 60%%", a.sprinting, a.vel)
 	}

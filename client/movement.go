@@ -147,6 +147,7 @@ func (g *game) tick(in input) {
 		return
 	}
 	g.ticks++
+	g.applyPendingHit()
 	g.updateFov()
 	g.tickDamage()
 	y0 := g.feet[1]

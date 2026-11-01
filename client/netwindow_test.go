@@ -751,6 +751,10 @@ func TestHittingAPlayerEndsTheSprintAsTheGameDoes(t *testing.T) {
 	if !g.attackClick() {
 		t.Fatal("the click did not reach the player in front")
 	}
+	if !g.sprinting || g.vel[2] != 0.28 {
+		t.Fatalf("the click itself changed the motion (%v, %v): it is paid at the start of the next tick", g.sprinting, g.vel)
+	}
+	g.applyPendingHit()
 	if g.sprinting || !near(g.vel[2], 0.28*0.6, 1e-9) {
 		t.Fatalf("after the blow: sprinting %v vel %v, want the sprint ended and the motion at 0.6", g.sprinting, g.vel)
 	}
@@ -829,5 +833,48 @@ func TestServerTeleportKeepsTheMotionOfRelativeAxes(t *testing.T) {
 	pkt(0, 1, 2, 3, 0, 0)
 	if g.feet != (vec3{1, 2, 3}) || g.vel != (vec3{}) {
 		t.Fatalf("absolute: feet %v motion %v", g.feet, g.vel)
+	}
+}
+
+// A knockback that came just before the player's own blow is slowed by it: the packet is taken in at the start of
+// the frame and the blow is paid at the start of the next tick, so the slowdown falls on the knockback. If the
+// click slowed the old motion and the packet then replaced it, the player would go on as far as an unhit one.
+func TestKnockbackThenBlowIsSlowed(t *testing.T) {
+	run := func(hit, packetFirst bool) float64 {
+		g, c := windowGame(t)
+		c.inbox = make(chan func(*game), 16)
+		g.net.received[world.ChunkPos{X: 0, Z: 0}] = true
+		g.feet, g.prevFeet = vec3{0.5, 4, 0.5}, vec3{0.5, 4, 0.5}
+		g.pos = g.feet.add(vec3{0, eyeHeight, 0})
+		g.yaw, g.pitch = 0, 0
+		g.onGround = true
+		g.net.remote[9] = &remotePlayer{eid: 9, name: "Rival", pos: vec3{0.5, 4, 2.2}, prev: vec3{0.5, 4, 2.2}, target: vec3{0.5, 4, 2.2}}
+		g.sprinting = true
+		g.net.sentSprint = true
+		v := newPacket(0x12)
+		v.VarInt(g.net.eid)
+		v.UShort(uint16(int16(4000))) // 0.5 along x
+		v.UShort(0)
+		v.UShort(0)
+		c.inbox <- decodeFrame(t, v, nil)
+		if packetFirst {
+			g.pumpLight() // the packet is taken in at the start of the frame, before the click
+		}
+		if hit && !g.attackClick() {
+			t.Fatal("no blow")
+		}
+		g.pumpLight() // what the loop does before each tick: a packet that was still queued lands now
+		if g.vel[0] != 0.5 {
+			t.Fatalf("the knockback is %v", g.vel)
+		}
+		x0 := g.feet[0]
+		g.tick(input{})
+		return g.feet[0] - x0
+	}
+	for _, packetFirst := range []bool{true, false} { // the packet before the click, or still queued when it comes
+		free, struck := run(false, packetFirst), run(true, packetFirst)
+		if free < 0.3 || !near(struck/free, 0.6, 0.02) {
+			t.Fatalf("packet first %v: an unhit player moved %.4f and one that struck %.4f, want 0.6 of it (%.3f)", packetFirst, free, struck, struck/free)
+		}
 	}
 }
