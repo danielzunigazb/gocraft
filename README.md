@@ -76,7 +76,7 @@ las originales. Los paquetes se leen de la carpeta indicada con `-packs` y se ac
 | Generación de mundo | 13.6 % | 55 % | `██████░░░░` | biomas exactos, terreno al 99.9 %, cuevas, barrancos, nether, end, árboles, minerales, lagos | aldeas, fortalezas, minas, templos, monumentos, botín de mazmorras, mesas de arcilla y árboles gigantes |
 | Bloques y entidades-bloque | 12.2 % | 25 % | `██░░░░░░░░` | colisiones, dureza y herramientas, cofres, hornos, carteles, notas, apertura de tapas | flujo de fluidos, cultivos, fuego, redstone, pistones, ticks aleatorios |
 | Servidor integrado y comandos | 8.2 % | 10 % | `█░░░░░░░░░` | streaming de chunks, jugadores, combate básico, aparición | comandos, mobs del lado del servidor, guardado de jugadores |
-| Items, crafteo y contenedores | 7.3 % | 55 % | `██████░░░░` | motor de clics (modos 0-6), 111 recetas, ventanas de cofre, horno y mesa | encantamientos, yunque, alquimia, pociones, libros, fuegos artificiales |
+| Items, crafteo y contenedores | 7.3 % | 55 % | `██████░░░░` | motor de clics (modos 0-6), 111 recetas, ventanas de cofre, horno, mesa, encantamientos, yunque y alquimia | faro, aldeano, caballo, pociones, libros, fuegos artificiales |
 | Protocolo de red | 5.5 % | 80 % | `████████░░` | 58 de 74 paquetes servidor→cliente y 22 de 24 cliente→servidor, compresión, login en línea y sin conexión | 16 paquetes servidor→cliente, 2 cliente→servidor |
 | Núcleo del mundo | 3.1 % | 70 % | `███████░░░` | formato Anvil, iluminación, chunks | guardado completo de entidades y estadísticas |
 
@@ -241,7 +241,7 @@ Variables de entorno: `GOCRAFT_BRAND` (identificador anunciado al servidor; por 
 xvfb-run -a ./gocraft -demo -screen netmobs -look 0,18 -screenshot /tmp/mobs.png
 ```
 
-Escenas: `netmobs`, `netstands`, `netpaintings`, `netframes`, `netheads`, `netgear`, `netlightning`, `netfish`, `netparticles`, `netitems`, `netboss`, `netborder`, `netlist`, `netchat`, `signs`,
+Escenas: `netmobs`, `netstands`, `netpaintings`, `netframes`, `netheads`, `netgear`, `netenchant`, `netanvil`, `netbrewing`, `netlightning`, `netfish`, `netparticles`, `netitems`, `netboss`, `netborder`, `netlist`, `netchat`, `signs`,
 `cracks`, `drag`, `survival`, `inventory`, `title`. Las `net*` requieren `-demo`.
 
 ## Limitaciones conocidas

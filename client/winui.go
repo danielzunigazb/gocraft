@@ -105,6 +105,14 @@ func (g *game) winMouse(b glfw.MouseButton, down bool) {
 	if b != glfw.MouseButtonLeft && b != glfw.MouseButtonRight && b != glfw.MouseButtonMiddle {
 		return
 	}
+	if down && b == glfw.MouseButtonLeft && g.screen == screenServerWin && g.swin != nil { // the buttons of an enchanting table
+		_, ph := g.swin.layout()
+		s, left, top := g.windowPanel(ph)
+		mx, my := g.mouse()
+		if g.windowButton((mx-left)/s, (my-top)/s) {
+			return
+		}
+	}
 	m, idx, outside := g.winHit()
 	if m == nil {
 		return

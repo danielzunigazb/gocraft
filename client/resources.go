@@ -150,7 +150,7 @@ func loadResources(jarPath string, packs []string) (*resources, error) {
 	if err := r.loadItems(p); err != nil {
 		return nil, err
 	}
-	for _, name := range []string{"gui/widgets", "gui/icons", "gui/container/creative_inventory/tab_items", "font/ascii", "gui/container/inventory", "gui/container/crafting_table", "gui/container/furnace", "gui/container/generic_54", "gui/container/hopper", "gui/container/dispenser", "gui/container/creative_inventory/tabs"} {
+	for _, name := range []string{"gui/widgets", "gui/icons", "gui/container/creative_inventory/tab_items", "font/ascii", "gui/container/inventory", "gui/container/crafting_table", "gui/container/furnace", "gui/container/generic_54", "gui/container/hopper", "gui/container/dispenser", "gui/container/creative_inventory/tabs", "gui/container/enchanting_table", "gui/container/anvil", "gui/container/brewing_stand"} {
 		img, err := p.png("assets/minecraft/textures/" + name + ".png")
 		if err != nil {
 			return nil, err

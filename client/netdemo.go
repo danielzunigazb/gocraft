@@ -320,6 +320,34 @@ func (g *game) headsDemo() {
 	}
 }
 
+// specialWindowDemo opens an enchanting table, an anvil or a brewing stand with something in it, as a server would
+// have filled it.
+func (g *game) specialWindowDemo(kind string) {
+	g.netDemo(false)
+	g.xpLevel = 25
+	g.openServerWindow(2, kind, `{"text":"`+map[string]string{kindEnchant: "Enchant", kindAnvil: "Repair & Name", kindBrewing: "Brewing Stand"}[kind]+`"}`, 0)
+	w := g.swin
+	switch kind {
+	case kindEnchant:
+		w.slots[0], w.slots[1] = slot{ID: 276, N: 1}, slot{ID: 351, Dmg: 4, N: 2}
+		w.props[0], w.props[1], w.props[2] = 9, 19, 30
+		w.props[4], w.props[5], w.props[6] = 16, 34, 32
+		w.props[7], w.props[8], w.props[9] = 1, 2, 3
+	case kindAnvil:
+		w.slots[0], w.slots[1] = slot{ID: 276, N: 1}, slot{ID: 264, N: 1}
+		w.slots[2] = slot{ID: 276, N: 1}
+		w.props[0] = 7
+		w.name = "Espada de prueba"
+		w.nameFor = "-"
+	case kindBrewing:
+		w.slots[0], w.slots[1], w.slots[2], w.slots[3] = slot{ID: 373, N: 1}, slot{ID: 373, N: 1}, slot{}, slot{ID: 376, N: 1}
+		w.props[0] = 150
+	}
+	for i := 0; i < 4; i++ {
+		g.inv[i] = slot{ID: []uint16{264, 351, 276, 1}[i], Dmg: []uint16{0, 4, 0, 0}[i], N: 5}
+	}
+}
+
 // gearDemo dresses a row of mobs as a server would: a zombie in iron with a sword, a skeleton in diamond with a bow,
 // a pigman in gold, a wither skeleton with a stone sword and a leather-clad zombie.
 func (g *game) gearDemo() {

@@ -34,7 +34,9 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 - [x] Motor de clics único (modos 0-6) e inventario por servidores ajenos (⚠)
 - [x] Ventanas del servidor: cofre, hopper, dispenser, horno y mesa de crafteo, con predicción (⚠)
 - [x] Arrastrar para repartir, doble clic, teclas 1-9, Q, clic central, vista previa
-- [ ] Mesa de encantamientos, yunque, alquimia, faro, aldeano y caballo (hoy se dibujan como filas de cofre)
+- [x] Mesa de encantamientos (botones, niveles, pistas, Enchant Item), yunque (nombre, coste, MC|ItemName) y alquimia (flecha y burbujas)
+- [ ] Faro, aldeano y caballo (hoy se dibujan como filas de cofre)
+- [x] La mesa de crafteo de un servidor vanilla llega con 0 casillas en el paquete: el tamaño sale ahora del tipo
 - [ ] Inventario creativo por la misma vía
 
 ## Interfaz

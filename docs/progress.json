@@ -54,8 +54,8 @@
       "name": "Items, crafteo y contenedores",
       "weight": 7.3,
       "percent": 55,
-      "done": "motor de clics (modos 0-6), 111 recetas, ventanas de cofre, horno y mesa",
-      "missing": "encantamientos, yunque, alquimia, pociones, libros, fuegos artificiales"
+      "done": "motor de clics (modos 0-6), 111 recetas, ventanas de cofre, horno, mesa, encantamientos, yunque y alquimia",
+      "missing": "faro, aldeano, caballo, pociones, libros, fuegos artificiales"
     },
     {
       "id": "network",

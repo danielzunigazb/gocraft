@@ -724,6 +724,12 @@ func (g *game) loop() error {
 		case "netmobs":
 			g.netDemo(false)
 			g.mobsDemo()
+		case "netenchant":
+			g.specialWindowDemo(kindEnchant)
+		case "netanvil":
+			g.specialWindowDemo(kindAnvil)
+		case "netbrewing":
+			g.specialWindowDemo(kindBrewing)
 		case "netgear":
 			g.netDemo(false)
 			g.gearDemo()

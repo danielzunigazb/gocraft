@@ -30,6 +30,8 @@ type serverWindow struct {
 	action  int16     // the transaction number of the last click, which a server that refuses it answers with
 	win     *clickWin // the click engine of the window, kept while it is open: a drag lives across several clicks
 	props   [16]int   // Window Property: a furnace's flame and arrow, an enchanting table's levels
+	name    string    // the anvil's name field
+	nameFor string    // the item the field was last filled for
 }
 
 // readSlotX reads an item stack with its tag: the display name and lore are kept, the rest is skipped.
@@ -121,6 +123,7 @@ func (g *game) openServerWindow(id int8, kind, titleJSON string, n int) {
 	if g.screen == screenContainer {
 		g.closeContainer()
 	}
+	n = windowOwnSlots(kind, n)
 	title := parseChatBase(titleJSON, textStyle{col: [3]float32{0.25, 0.25, 0.25}})
 	g.wui = winUI{}
 	g.swin = &serverWindow{id: id, kind: kind, title: title, n: n, slots: make([]slot, n), extra: make([]itemExtra, n)}
@@ -210,6 +213,9 @@ func (w *serverWindow) layout() (slots []winSlot, h int) {
 			add(8+18*c, hotY)
 		}
 	}
+	if h, ok := specialLayout(w.kind, add, player); ok {
+		return slots, h
+	}
 	switch {
 	case w.kind == "minecraft:hopper" && w.n == 5:
 		for i := 0; i < 5; i++ {
@@ -278,6 +284,9 @@ func (g *game) drawServerWindow(w, h int) {
 		hd.rect(left, top, contW*s, contH*s, 0, 0, contW, contH, 256, 256, one)
 		hd.flush(hd.tableTex)
 		titleX, invLabel = 28, 72
+	case win.kind == kindEnchant || win.kind == kindAnvil || win.kind == kindBrewing:
+		mx0, my0 := g.mouse()
+		titleX, invLabel = g.drawSpecialBackground(win, left, top, s, mx0, my0)
 	case win.kind == "minecraft:furnace" && win.n == 3:
 		hd.rect(left, top, contW*s, contH*s, 0, 0, contW, contH, 256, 256, one)
 		if win.props[1] > 0 { // the flame shrinks as the fuel burns (GuiFurnace.func_175382_i)
@@ -305,7 +314,9 @@ func (g *game) drawServerWindow(w, h int) {
 		titleX = int((contW - float32(g.runsWidth(win.title))) / 2)
 	}
 	g.drawRuns(win.title, left+float32(titleX)*s, top+6*s, s, 1, false)
-	g.text("Inventory", left+8*s, top+float32(invLabel)*s, s, [4]float32{0.25, 0.25, 0.25, 1}, false)
+	if invLabel >= 0 {
+		g.text("Inventory", left+8*s, top+float32(invLabel)*s, s, [4]float32{0.25, 0.25, 0.25, 1}, false)
+	}
 	prev, remnant, painting := g.dragPreview(g.serverMap()) // a stack painted across slots shows what each would hold
 	shown := func(i int) slot {
 		if c, ok := prev[i]; painting && ok {
@@ -327,6 +338,17 @@ func (g *game) drawServerWindow(w, h int) {
 		}
 	}
 	mx, my := g.mouse()
+	if win.kind == kindEnchant {
+		if i := enchantButtonAt((mx-left)/s, (my-top)/s); i >= 0 {
+			if lines := g.enchantTooltip(win, i); len(lines) > 0 {
+				rs := make([][]styledRun, len(lines))
+				for k, l := range lines {
+					rs[k] = legacyRuns(l, defaultStyle)
+				}
+				g.drawLinesTooltip(rs, mx, my, s)
+			}
+		}
+	}
 	if sl, ok := g.windowSlotAt(mx, my, left, top, s, slots); ok {
 		hd.rect(left+float32(sl.x)*s, top+float32(sl.y)*s, 16*s, 16*s, 0, 0, 1, 1, 1, 1, [4]float32{1, 1, 1, 0.4})
 		hd.flush(hd.white)
@@ -365,6 +387,11 @@ func (g *game) drawItemTooltip(it slot, ex itemExtra, mx, my, s float32) {
 		lines = append(lines, []styledRun{{g.displayName(it), defaultStyle}})
 	}
 	lines = append(lines, ex.lore...)
+	g.drawLinesTooltip(lines, mx, my, s)
+}
+
+// drawLinesTooltip draws lines of text in a tooltip box by the mouse.
+func (g *game) drawLinesTooltip(lines [][]styledRun, mx, my, s float32) {
 	wd := 0
 	for _, l := range lines {
 		wd = max(wd, g.runsWidth(l))

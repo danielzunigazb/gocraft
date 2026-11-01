@@ -61,6 +61,10 @@ func (g *game) onChar(_ *glfw.Window, r rune) {
 		return
 	}
 	switch g.screen {
+	case screenServerWin:
+		if g.anvilTyping() {
+			g.anvilChar(r)
+		}
 	case screenChat:
 		g.tab.waiting, g.tab.found = false, false // any other key ends the walk through the answers
 		if len(g.chatInput) < chatMax {
@@ -79,10 +83,16 @@ func (g *game) onChar(_ *glfw.Window, r rune) {
 }
 
 // typing is whether a text entry has the keyboard.
-func (g *game) typing() bool { return g.screen == screenChat || g.screen == screenMulti }
+func (g *game) typing() bool {
+	return g.screen == screenChat || g.screen == screenMulti || g.anvilTyping()
+}
 
 // typingKey handles the keys of a text entry; it reports whether the key was one of its own.
 func (g *game) typingKey(key glfw.Key) bool {
+	if g.anvilTyping() {
+		g.anvilKey(key)
+		return true
+	}
 	switch g.screen {
 	case screenChat:
 		switch key {
