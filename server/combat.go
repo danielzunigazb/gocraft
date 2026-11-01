@@ -279,6 +279,7 @@ func (p *Player) trackFall(oldY float64, onGround, inWater bool) float32 {
 // tick is one 20 Hz step of the world's rules: invulnerability counts down, the dead respawn,
 // the living heal and the ones under the world die.
 func (s *Server) tick() {
+	defer s.autosave()
 	for _, p := range s.inWorld() {
 		p.mu.Lock()
 		if p.hurtResist > 0 {

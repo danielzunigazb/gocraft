@@ -92,6 +92,15 @@ func (p *Player) play(s *Server, br *bufio.Reader) {
 	spawn := proto.NewPacket(0x05)
 	spawn.Long(proto.PackPos(int32(sx), int32(sy), int32(sz)))
 	p.send(spawn.Frame())
+	var yaw, pitch float32
+	saved, returning := s.loadPlayer(p.uuid) // a player who has been here stands where they left off
+	if returning {
+		sx, sy, sz, yaw, pitch = saved.pos[0], saved.pos[1], saved.pos[2], saved.yaw, saved.pitch
+		scp = world.ChunkPos{X: int32(math.Floor(sx)) >> 4, Z: int32(math.Floor(sz)) >> 4}
+		p.mu.Lock()
+		p.health, p.held, p.inv = saved.health, saved.held, saved.inv
+		p.mu.Unlock()
+	}
 
 	brand := proto.NewPacket(0x3F) // plugin message: who this server is, as every 1.8 server says
 	brand.String("MC|Brand")
@@ -118,7 +127,13 @@ func (p *Player) play(s *Server, br *bufio.Reader) {
 	p.chunk = scp
 	p.mu.Unlock()
 	p.streamChunks(s)
-	p.teleport(sx, sy, sz, 0, 0)
+	p.teleport(sx, sy, sz, yaw, pitch)
+	if returning {
+		p.send(p.windowItemsPacket())
+		held := proto.NewPacket(0x09)
+		held.Byte(byte(saved.held))
+		p.send(held.Frame())
+	}
 
 	p.mu.Lock()
 	p.joined = true
@@ -226,6 +241,7 @@ func (s *Server) setBlock(x, y, z int32, state uint16) {
 	if !s.world.SetBlock(x, y, z, state) {
 		return
 	}
+	s.markEdited(world.ChunkPos{X: x >> 4, Z: z >> 4})
 	frame := BlockChangePacket(x, y, z, state)
 	s.mu.Lock()
 	ps := make([]*Player, 0, len(s.players))

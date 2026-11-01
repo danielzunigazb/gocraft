@@ -49,7 +49,7 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 ## Servidor propio
 - [ ] Ventanas e inventarios reales (reutilizando el motor de clics)
 - [ ] Mobs del lado del servidor
-- [ ] Guardar el mundo y los jugadores
+- [x] Guardar el mundo y los jugadores (`-save`): columnas editadas como mundo 1.8.9 y datos de cada jugador, que vuelve donde estaba
 
 ## Calidad
 - [x] README y ROADMAP

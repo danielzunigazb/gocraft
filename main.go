@@ -4,7 +4,10 @@ import (
 	"flag"
 	"log"
 	"net"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 
 	"gocraft/server"
 	"gocraft/worldgen"
@@ -17,6 +20,7 @@ func main() {
 	max := flag.Int("max", 20, "max players")
 	seed := flag.String("seed", "", "generate the world from this seed (a number, or any text) instead of the flat world")
 	survival := flag.Bool("survival", false, "survival rules: health, player versus player damage, falling (default: creative)")
+	saveDir := flag.String("save", "", "keep the world and the players in this folder (a 1.8.9 world folder): the edited columns and each player's position and inventory")
 	flag.Parse()
 
 	l, err := net.Listen("tcp", *addr)
@@ -24,7 +28,7 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("gocraft: Minecraft %s (protocol %d) on %s", server.Version, server.Protocol, l.Addr())
-	cfg := server.Config{MOTD: *motd, MaxPlayers: *max, ViewDistance: *view, Survival: *survival}
+	cfg := server.Config{MOTD: *motd, MaxPlayers: *max, ViewDistance: *view, Survival: *survival, SaveDir: *saveDir}
 	if *seed != "" {
 		n, err := strconv.ParseInt(*seed, 10, 64)
 		if err != nil {
@@ -35,5 +39,17 @@ func main() {
 		log.Printf("generating the world from seed %d", n)
 	}
 	s := server.New(cfg)
+	if *saveDir != "" { // the world is written on a stop signal too, not only every minute
+		stop := make(chan os.Signal, 1)
+		signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+		go func() {
+			<-stop
+			if err := s.Save(); err != nil {
+				log.Printf("save: %v", err)
+			}
+			log.Printf("saved to %s", *saveDir)
+			os.Exit(0)
+		}()
+	}
 	log.Fatal(s.Serve(l))
 }

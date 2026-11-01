@@ -2,12 +2,16 @@ package anvil
 
 import (
 	"bytes"
+	"compress/gzip"
 	"compress/zlib"
 	"encoding/binary"
 	"fmt"
 	"io"
 	"math"
+	"os"
+	"path/filepath"
 	"sort"
+	"time"
 
 	"gocraft/world"
 )
@@ -331,4 +335,96 @@ func (r *Region) Bytes() ([]byte, error) {
 		next += sectors
 	}
 	return out, nil
+}
+
+// WriteChunks puts columns into a world folder: each region file is read (if it exists), the columns are set in it
+// and it is written back through a temporary file, so a crash never leaves a half-written region. A folder with no
+// level.dat gets one from level (the "Data" compound). It is how a server keeps the columns that were edited.
+func WriteChunks(dir string, level Compound, chunks map[world.ChunkPos]*world.Chunk) error {
+	if err := os.MkdirAll(filepath.Join(dir, "region"), 0o755); err != nil {
+		return err
+	}
+	now := uint32(time.Now().Unix())
+	byRegion := map[[2]int32]*Region{}
+	for cp, c := range chunks {
+		k := [2]int32{cp.X >> 5, cp.Z >> 5}
+		r := byRegion[k]
+		if r == nil {
+			path := filepath.Join(dir, "region", fmt.Sprintf("r.%d.%d.mca", k[0], k[1]))
+			r = &Region{}
+			if b, err := os.ReadFile(path); err == nil {
+				if r, err = ReadRegion(b); err != nil {
+					return fmt.Errorf("%s: %w", path, err)
+				}
+			}
+			byRegion[k] = r
+		}
+		if err := r.Set(cp, ChunkNBT(cp, c, nil), now); err != nil {
+			return err
+		}
+	}
+	for k, r := range byRegion {
+		b, err := r.Bytes()
+		if err != nil {
+			return err
+		}
+		if err := replaceFile(filepath.Join(dir, "region", fmt.Sprintf("r.%d.%d.mca", k[0], k[1])), b); err != nil {
+			return err
+		}
+	}
+	lvl := filepath.Join(dir, "level.dat")
+	if _, err := os.Stat(lvl); err == nil || level == nil {
+		return nil
+	}
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+	if err := WriteNBT(zw, Compound{"Data": level}, ""); err != nil {
+		return err
+	}
+	if err := zw.Close(); err != nil {
+		return err
+	}
+	return replaceFile(lvl, buf.Bytes())
+}
+
+// WritePlayer saves a player's data as playerdata/<uuid>.dat, gzipped NBT as the game keeps it.
+func WritePlayer(dir, uuid string, data Compound) error {
+	if err := os.MkdirAll(filepath.Join(dir, "playerdata"), 0o755); err != nil {
+		return err
+	}
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+	if err := WriteNBT(zw, data, ""); err != nil {
+		return err
+	}
+	if err := zw.Close(); err != nil {
+		return err
+	}
+	return replaceFile(filepath.Join(dir, "playerdata", uuid+".dat"), buf.Bytes())
+}
+
+// ReadPlayer is the data of a player saved by WritePlayer or the game; nil when there is none.
+func ReadPlayer(dir, uuid string) Compound {
+	f, err := os.Open(filepath.Join(dir, "playerdata", uuid+".dat"))
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+	zr, err := gzip.NewReader(f)
+	if err != nil {
+		return nil
+	}
+	c, err := ReadNBT(zr)
+	if err != nil {
+		return nil
+	}
+	return c
+}
+
+func replaceFile(path string, b []byte) error {
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, b, 0o644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, path)
 }

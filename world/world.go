@@ -50,6 +50,13 @@ var flatLayers = []uint16{7 << 4, 3 << 4, 3 << 4, 2 << 4}
 
 const SpawnY = 4
 
+// FlatChunk is a column of the default flat world.
+func FlatChunk() *Chunk {
+	c := &Chunk{}
+	fillFlat(c)
+	return c
+}
+
 func fillFlat(c *Chunk) {
 	for y, id := range flatLayers {
 		for i := 0; i < 256; i++ {

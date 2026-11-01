@@ -35,6 +35,9 @@ type Config struct {
 	Seed      int64
 	Generator func(world.ChunkPos) *world.Chunk
 	Spawn     func() (x, z int32)
+	// SaveDir is a world folder the server keeps what players change in (the edited columns, as a 1.8.9 world,
+	// and each player's position, health and inventory). Empty: nothing is kept.
+	SaveDir string
 }
 
 type Server struct {
@@ -46,6 +49,10 @@ type Server struct {
 	nextEID int32
 
 	manual bool // tests drive tick() themselves
+
+	store  *store                  // the saved world, with Config.SaveDir
+	edited map[world.ChunkPos]bool // columns changed since the last save
+	ticks  int
 
 	spawnOnce sync.Once
 	spawnAt   [3]float64
@@ -65,7 +72,21 @@ func New(cfg Config) *Server {
 	if cfg.Generator != nil {
 		w = world.NewFrom(cfg.Generator)
 	}
-	return &Server{cfg: cfg, world: w, players: map[int32]*Player{}, nextEID: 1}
+	var st *store
+	if cfg.SaveDir != "" { // what was saved comes first; the rest is the generator's
+		st = &store{dir: cfg.SaveDir}
+		gen := cfg.Generator
+		w = world.NewFrom(func(cp world.ChunkPos) *world.Chunk {
+			if c := st.load(cp); c != nil {
+				return c
+			}
+			if gen != nil {
+				return gen(cp)
+			}
+			return world.FlatChunk()
+		})
+	}
+	return &Server{cfg: cfg, world: w, store: st, players: map[int32]*Player{}, nextEID: 1}
 }
 
 func (s *Server) Serve(l net.Listener) error {
@@ -202,6 +223,11 @@ func (s *Server) join(nc net.Conn, name string) (*Player, error) {
 }
 
 func (s *Server) leave(p *Player) {
+	if p.inWorld() && s.store != nil {
+		if err := s.savePlayer(p); err != nil {
+			log.Printf("save %s: %v", p.name, err)
+		}
+	}
 	s.mu.Lock()
 	delete(s.players, p.eid)
 	s.mu.Unlock()
