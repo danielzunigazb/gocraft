@@ -836,6 +836,16 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 				e.mob.m.hurtTime = 10 // performHurtAnimation
 			}
 		}
+	case 0x33: // update sign: its four lines
+		x, y, z := proto.UnpackPos(r.Long())
+		var lines [4]string
+		for i := range lines {
+			lines[i] = r.String(32767)
+		}
+		if r.Err() != nil {
+			return nil
+		}
+		return func(g *game) { g.netUpdateSign([3]int32{x, y, z}, lines) }
 	case 0x25: // block break animation: someone else's mining cracks a block
 		eid := r.VarInt()
 		x, y, z := proto.UnpackPos(r.Long())
@@ -1235,7 +1245,7 @@ func (g *game) netRespawn(d int, mode byte) {
 	n.received = map[world.ChunkPos]bool{}
 	n.remote = map[int32]*remotePlayer{}
 	n.ents, n.items, n.pickups = nil, nil, nil
-	g.damage = nil
+	g.damage, g.signs = nil, nil
 	g.closeServerWindow(false)
 	g.world = world.NewFrom(func(world.ChunkPos) *world.Chunk { return nil })
 	g.world.SetLightRules(g.res.light)

@@ -432,6 +432,7 @@ func (g *game) loadEntities(cp world.ChunkPos) {
 	if g.save == nil {
 		return
 	}
+	g.loadSigns(cp)        // signs are not put away with the mobs: read their text every time
 	if g.be.resolved[cp] { // read from the world file once; from then on the overlay has them
 		g.spawnStored(cp)
 		return

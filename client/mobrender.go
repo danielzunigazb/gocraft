@@ -22,6 +22,7 @@ func (g *game) drawMobs() {
 		groups[k] = groups[k][:0]
 	}
 	g.emitChests(groups)
+	g.emitSigns(groups)
 	if len(g.mobs) == 0 && len(g.arrows) == 0 && g.perspective == 0 && (g.net == nil || len(g.net.remote) == 0 && len(g.net.ents) == 0) && len(groups) == 0 {
 		return
 	}
@@ -64,6 +65,8 @@ func (g *game) drawMobs() {
 			tex, ok = g.hud.itemTex, true
 		case "!blocks":
 			tex, ok = g.tex, true
+		case "!font": // the text of signs
+			tex, ok = g.hud.font, true
 		}
 		if !ok || len(verts) == 0 {
 			continue
