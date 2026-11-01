@@ -172,6 +172,7 @@ type game struct {
 	signs                      map[[3]int32]*[4][]styledRun // the text of the signs, by block
 	skulls                     map[[3]int32]*skullEntity    // the heads a server put on blocks
 	sedit                      *signEditor                  // the sign being edited
+	serverPack                 string                       // the file of the resource pack the server gave, laid over the player's own
 	spawners                   map[[3]int32]*spawnerState   // the mobs turning in spawner cages
 	flash                      int                          // ticks left of the sky's flash from a lightning bolt
 	entMobs                    entityMesh
@@ -480,6 +481,8 @@ func (g *game) onKey(w *glfw.Window, key glfw.Key, _ int, action glfw.Action, _ 
 			g.closeServerWindow(true)
 		case screenSignEdit:
 			g.closeSignEditor()
+		case screenServerPack:
+			g.serverPackKey(key)
 		case screenInventory, screenPause:
 			g.closeScreen()
 		case screenWorlds:
@@ -594,7 +597,7 @@ func (g *game) onMouse(_ *glfw.Window, b glfw.MouseButton, action glfw.Action, _
 		g.rebinding = ""
 		return
 	}
-	if g.screen.isMenu() || g.screen == screenDead || g.screen == screenSignEdit {
+	if g.screen.isMenu() || g.screen == screenDead || g.screen == screenSignEdit || g.screen == screenServerPack {
 		g.uiClick = b == glfw.MouseButtonLeft
 		return
 	}
@@ -679,6 +682,7 @@ func (g *game) draw() {
 	}
 	g.drawSignEditor(w, h)
 	g.drawDeathScreen(w, h)
+	g.drawServerPackPrompt(w, h)
 	g.drawMenus()
 }
 
@@ -736,6 +740,10 @@ func (g *game) loop() error {
 			g.netDemo(false)
 			g.sedit = &signEditor{pos: [3]int32{0, 4, 0}, lines: [4]string{"[SkyWars]", "Solo", "8/12", ""}, line: 3}
 			g.openScreen(screenSignEdit)
+		case "netpack":
+			g.netDemo(false)
+			g.net.packAsk = &packOffer{url: "https://example.com/pack.zip", hash: strings.Repeat("a", 40)}
+			g.openScreen(screenServerPack)
 		case "netenchant":
 			g.specialWindowDemo(kindEnchant)
 		case "netanvil":
@@ -1145,6 +1153,7 @@ func (g *game) closeWorld() {
 		g.save = nil
 	}
 	g.inGame = false
+	g.dropServerPack() // the server's pack stays with the server
 }
 
 func logf(format string, args ...any) { log.Printf(format, args...) }
@@ -1220,11 +1229,18 @@ func packPaths(names []string, dir string) []string {
 // reloadResources reads the jar and the enabled packs again and puts the result on screen: textures
 // are uploaded anew and every column is meshed again with the new picture.
 func (g *game) reloadResources() error {
-	res, err := loadResources(g.opt.JarPath, packPaths(g.opts.Packs, g.opt.PacksDir))
+	paths := packPaths(g.opts.Packs, g.opt.PacksDir)
+	if g.serverPack != "" {
+		paths = append(paths, g.serverPack) // on top: a server's pack wins over the player's
+	}
+	res, err := loadResources(g.opt.JarPath, paths)
 	if err != nil {
 		return err
 	}
 	g.res = res
+	if g.win == nil { // nothing is on screen, so there are no textures to upload (tests)
+		return nil
+	}
 	g.deleteTextures()
 	g.tex = uploadTexture(g.res.atlas.img)
 	g.hud.uploadAll(g)

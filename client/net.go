@@ -101,6 +101,8 @@ type netState struct {
 	tab            map[string]*tabEntry  // the player list, by uuid
 	header, footer []styledRun           // the list's header and footer
 	eid            int32
+	addr           string     // the address the player typed, which names the server in the options
+	packAsk        *packOffer // a resource pack the player has not answered yet
 	// what the server last heard from us
 	sentPos         vec3
 	sentYaw, sentPt float32
@@ -1164,18 +1166,13 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 			w.Bool(true)
 			g.net.c.send(w)
 		}
-	case 0x48: // resource pack offered: gocraft does not download them, and says so
-		r.String(40)
+	case 0x48: // resource pack offered: the player is asked, and it is downloaded and laid over their packs
+		url := r.String(32767)
 		hash := r.String(40)
 		if r.Err() != nil {
 			return nil
 		}
-		return func(g *game) {
-			w := newPacket(0x19)
-			w.String(hash)
-			w.VarInt(1) // declined
-			g.net.c.send(w)
-		}
+		return func(g *game) { g.offerServerPack(url, hash) }
 	case 0x0F: // spawn mob: only kept for its name (armor stands carry a lobby's holograms)
 		eid := r.VarInt()
 		kind := r.Byte()
@@ -1324,7 +1321,7 @@ func (g *game) connect(addr, name string) error {
 	}
 	g.closeWorld()
 	g.swin = nil
-	g.net = &netState{c: c, received: map[world.ChunkPos]bool{}, remote: map[int32]*remotePlayer{}, names: map[string]string{}, sentHeld: -1}
+	g.net = &netState{c: c, addr: addr, received: map[world.ChunkPos]bool{}, remote: map[int32]*remotePlayer{}, names: map[string]string{}, sentHeld: -1}
 	g.world = world.NewFrom(func(world.ChunkPos) *world.Chunk { return nil })
 	g.world.SetLightRules(g.res.light)
 	g.mobs, g.arrows, g.items = nil, nil, nil

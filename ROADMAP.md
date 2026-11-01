@@ -50,7 +50,8 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 - [x] Cursiva dibujada, como FontRenderer: arriba +1 y abajo -1 píxel
 - [x] Editor de carteles (0x36 y 0x12): cuatro líneas, flechas, Enter, borrar, ancho de 90 px, Hecho y Escape
 - [ ] Estadísticas (0x37)
-- [ ] Resource packs: hoy se rechazan
+- [x] Resource packs del servidor (0x48): pregunta Sí/No como GuiYesNo, descarga con las cabeceras de vanilla (50 MiB, SHA-1),
+      caché en `server-resource-packs/<hash>`, se pone sobre los del jugador y se quita al salir; la respuesta se recuerda por servidor (⚠ sin probar en un servidor real)
 
 ## Servidor propio
 - [x] Comandos básicos: help, list, say, me, msg, tp, time, give, kill, seed y save-all

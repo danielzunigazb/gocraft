@@ -40,6 +40,7 @@ type options struct {
 	DynamicLights  bool               // held and dropped light sources light their surroundings
 	Keys           map[string]int     // action id -> LWJGL code
 	Packs          []string           // enabled resource packs, lowest priority first
+	ServerPacks    map[string]string  // server address -> "enabled" or "disabled": what the player answered to its pack
 	ViewBobbing    bool               // the view and the hand sway with each step
 	FlatLight      bool               // smooth lighting off (options.txt's ao:0): one light for each face
 	Server         string             // the last server joined
@@ -109,6 +110,11 @@ func parseOptions(r *bufio.Scanner, o options) options {
 			if validName.MatchString(v) {
 				o.PlayerName = v
 			}
+		case "serverResourcePacks":
+			var m map[string]string
+			if json.Unmarshal([]byte(v), &m) == nil {
+				o.ServerPacks = m
+			}
 		case "resourcePacks":
 			var names []string
 			if json.Unmarshal([]byte(v), &names) == nil {
@@ -171,6 +177,10 @@ func (o options) save() error {
 		(o.FOV-30)/80, o.Sensitivity, o.InvertY, o.Gamma, o.RenderDistance, o.GuiScale, o.VSync, o.Fancy, o.DynamicLights, o.ViewBobbing, 2-2*boolIntOpt(o.FlatLight))
 	packs, _ := json.Marshal(append([]string{}, o.Packs...))
 	fmt.Fprintf(&b, "resourcePacks:%s\n", packs)
+	if len(o.ServerPacks) > 0 {
+		sp, _ := json.Marshal(o.ServerPacks)
+		fmt.Fprintf(&b, "serverResourcePacks:%s\n", sp)
+	}
 	if o.Server != "" {
 		fmt.Fprintf(&b, "lastServer:%s\n", o.Server)
 	}

@@ -75,7 +75,7 @@ las originales. Los paquetes se leen de la carpeta indicada con `-packs` y se ac
 |---|--:|--:|---|---|---|
 | Render | 18.3 % | 54 % | `█████░░░░░` | mallado por columnas, luz suave, modelos de bloque, 23 modelos de mobs, partículas, cielo, nombres y carteles, mapas en item frames | renderers de caballo, ocelote, guardián, wither y dragón; mapa en la mano |
 | Entidades | 16.6 % | 40 % | `████░░░░░░` | física y movimiento del jugador, jugadores remotos, items, proyectiles, anzuelo, armor stands, cuadros, item frames, cabezas, 23 tipos de mob con IA básica, correas | unos 38 tipos de entidad, la mayoría de las 80 metas de IA, minecarts, monturas y caballos |
-| Cliente (interfaz, opciones, sonido) | 15.2 % | 53 % | `█████░░░░░` | HUD, chat con estilos, menús, inventario, opciones, sonido, paquetes de recursos, mundos guardados, editor de carteles | inventario creativo, libros, estadísticas |
+| Cliente (interfaz, opciones, sonido) | 15.2 % | 53 % | `█████░░░░░` | HUD, chat con estilos, menús, inventario, opciones, sonido, paquetes de recursos (también los del servidor), mundos guardados, editor de carteles | inventario creativo, libros, estadísticas |
 | Generación de mundo | 13.6 % | 55 % | `██████░░░░` | biomas exactos, terreno al 99.9 %, cuevas, barrancos, nether, end, árboles, minerales, lagos | aldeas, fortalezas, minas, templos, monumentos, botín de mazmorras, mesas de arcilla y árboles gigantes |
 | Bloques y entidades-bloque | 12.2 % | 27 % | `███░░░░░░░` | colisiones, dureza y herramientas, cofres, hornos, carteles, notas, apertura de tapas, cabezas y spawners | flujo de fluidos, cultivos, fuego, redstone, pistones, ticks aleatorios |
 | Servidor integrado y comandos | 8.2 % | 18 % | `██░░░░░░░░` | streaming de chunks, jugadores, combate básico, aparición, guardado del mundo y de los jugadores, comandos básicos | los otros 50 comandos del juego, mobs del lado del servidor, ventanas e inventario del lado del servidor |
@@ -142,7 +142,7 @@ Los identificadores no listados se leen y se ignoran sin error.
 | Área | Identificadores |
 |---|---|
 | Conexión y estado | `0x01` entrada, `0x07` reaparición, `0x08` posición, `0x09` ranura activa, `0x06` salud, `0x1F` experiencia, `0x20` propiedades, `0x2B` estado de juego, `0x39` habilidades, `0x40` desconexión, `0x3F` mensaje de plugin |
-| Chat e interfaz | `0x02` chat, `0x45` títulos, `0x3A` autocompletado, `0x47` cabecera y pie, `0x38` lista de jugadores, `0x48` paquete de recursos (rechazado) |
+| Chat e interfaz | `0x02` chat, `0x45` títulos, `0x3A` autocompletado, `0x47` cabecera y pie, `0x38` lista de jugadores, `0x48` paquete de recursos (se pregunta, se descarga y se pone sobre los del jugador; `0x19` responde) |
 | Marcador | `0x3B` objetivo, `0x3C` puntuación, `0x3D` visualización, `0x3E` equipos |
 | Mundo | `0x21` columna, `0x26` columnas en bloque, `0x22` bloques de una columna, `0x23` cambio de bloque, `0x24` acción de bloque, `0x25` animación de picado, `0x03` hora, `0x44` borde del mundo, `0x33` cartel, `0x34` mapa, `0x35` bloque-entidad (calaveras y *spawners*), `0x36` editor de carteles |
 | Efectos | `0x27` explosión, `0x28` efecto, `0x29` sonido, `0x2A` partícula |
@@ -261,7 +261,7 @@ Variables de entorno: `GOCRAFT_BRAND` (identificador anunciado al servidor; por 
 xvfb-run -a ./gocraft -demo -screen netmobs -look 0,18 -screenshot /tmp/mobs.png
 ```
 
-Escenas: `netmobs`, `netstands`, `netpaintings`, `netframes`, `netheads`, `netgear`, `netsnow`, `netleash`, `netsignedit`, `netenchant`, `netanvil`, `netbrewing`, `netlightning`, `netfish`, `netparticles`, `netitems`, `netboss`, `netborder`, `netlist`, `netchat`, `signs`,
+Escenas: `netmobs`, `netstands`, `netpaintings`, `netframes`, `netheads`, `netgear`, `netsnow`, `netleash`, `netsignedit`, `netpack`, `netenchant`, `netanvil`, `netbrewing`, `netlightning`, `netfish`, `netparticles`, `netitems`, `netboss`, `netborder`, `netlist`, `netchat`, `signs`,
 `cracks`, `drag`, `survival`, `inventory`, `title`. Las `net*` requieren `-demo`.
 
 ## Limitaciones conocidas
