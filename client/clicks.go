@@ -1,8 +1,11 @@
 package client
 
 import (
+	"fmt"
 	"math"
 	"time"
+
+	"gocraft/proto"
 )
 
 // The mouse buttons as 1.8.9's Minecraft.runTick takes them in. A press is only counted when it happens
@@ -62,6 +65,9 @@ func (g *game) takeClicks() {
 		if g.thirdParty() && !g.keyDown("use") { // PlayerControllerMP.onStoppedUsingItem
 			g.stopUsing()
 		}
+		if c.attack > 0 && proto.Note != nil {
+			proto.Note(fmt.Sprintf("click dropped: %d attack presses while an item is in use", c.attack))
+		}
 		c.attack, c.use, c.pick = 0, 0, 0
 	} else {
 		if c.headSet {
@@ -94,6 +100,9 @@ func (g *game) takeClicks() {
 func (g *game) clickMouse() {
 	c := &g.pvp.clicks
 	if c.left > 0 {
+		if proto.Note != nil {
+			proto.Note(fmt.Sprintf("click held back: miss penalty, %d ticks left", c.left))
+		}
 		return
 	}
 	g.swingTicks = swingTicks
