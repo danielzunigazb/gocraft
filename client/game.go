@@ -98,6 +98,7 @@ type game struct {
 	inv                        [36]slot
 	armor                      [4]slot
 	cursor                     slot
+	cursorX                    itemExtra // the tag of the stack on the mouse in the player's own window on a server
 	health                     float32
 	food, regen                int
 	fall                       float32

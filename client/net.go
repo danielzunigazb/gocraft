@@ -83,6 +83,7 @@ type netState struct {
 	received       map[world.ChunkPos]bool
 	remote         map[int32]*remotePlayer
 	ents           map[int32]*netEntity  // mobs the server spawned, for their names
+	transaction0   int16                 // the player's window's transaction number, which counts up with each click
 	items          map[int32]*itemEntity // dropped items the server spawned; they are in g.items too
 	pickups        []*pickupFX           // items just collected, flying to who took them
 	extra          [45]itemExtra         // names and lore of the items in the player's window, by slot
@@ -1244,6 +1245,7 @@ func (g *game) netGameMode(mode byte) {
 // sends the new ones and a position.
 func (g *game) netRespawn(d int, mode byte) {
 	n := g.net
+	n.transaction0 = 0                    // a new player has a new window
 	g.speedsSet, g.sprintTicks = false, 0 // a new player entity
 	for cp := range n.received {
 		g.forgetMesh(cp)

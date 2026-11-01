@@ -123,7 +123,7 @@ func TestServerWindowClickSendsTheItemAsTheServerGaveIt(t *testing.T) {
 		if err != nil || id != 0x0E {
 			t.Fatalf("id 0x%02x err %v", id, err)
 		}
-		if win, slot, button, action, mode := r.Byte(), r.Short(), r.Byte(), r.Short(), r.Byte(); win != 5 || slot != 4 || button != 1 || action != 0 || mode != 0 {
+		if win, slot, button, action, mode := r.Byte(), r.Short(), r.Byte(), r.Short(), r.Byte(); win != 5 || slot != 4 || button != 1 || action != 1 || mode != 0 {
 			t.Fatalf("click %d %d %d %d %d", win, slot, button, action, mode)
 		}
 		if item := r.Short(); item != 399 || r.Byte() != 1 || r.Short() != 0 {

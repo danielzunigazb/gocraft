@@ -38,17 +38,11 @@ func (g *game) clickContainer(right bool) {
 	s, left, top := g.contPanel()
 	mx, my := g.mouse()
 	if x, y := (mx-left)/s, (my-top)/s; x < 0 || y < 0 || x >= contW || y >= float32(g.contHeight()) {
-		if !g.cursor.empty() {
-			if right {
-				g.throwItem(slot{g.cursor.ID, g.cursor.Dmg, 1})
-				if g.cursor.N--; g.cursor.N <= 0 {
-					g.cursor = slot{}
-				}
-			} else {
-				g.throwItem(g.cursor)
-				g.cursor = slot{}
-			}
+		button := 0
+		if right {
+			button = 1
 		}
+		g.windowClick(g.localMap(), -999, button, 0)
 	}
 }
 

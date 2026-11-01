@@ -46,10 +46,27 @@ func (g *game) recompute() {
 func (g *game) openContainer(k containerKind) {
 	g.cont = containerState{kind: k}
 	g.openScreen(screenContainer)
+	if k == contPlayer && g.net != nil { // Minecraft.runTick: "open inventory" goes to the server before the screen opens
+		p := newPacket(0x16)
+		p.VarInt(2)
+		g.net.c.send(p)
+	}
 }
 
-// closeContainer hands back what was left in the grid and on the mouse; what does not fit is thrown.
+// closeContainer hands back what was left in the grid and on the mouse; what does not fit is thrown. On a
+// server the player's window is closed with a Close Window and what it held is the server's to throw
+// (Container.onContainerClosed): the game only forgets it.
 func (g *game) closeContainer() {
+	if g.net != nil {
+		if g.cont.kind == contPlayer {
+			p := newPacket(0x0D)
+			p.Byte(0)
+			g.net.c.send(p)
+		}
+		g.cont, g.cursor, g.cursorX = containerState{}, slot{}, itemExtra{}
+		g.closeScreen()
+		return
+	}
 	w, h := g.cont.size()
 	for i := 0; i < w*h; i++ {
 		if s := g.cont.grid[i]; !s.empty() {
@@ -87,24 +104,6 @@ func armourKind(id uint16) int {
 	return int(id-298) % 4
 }
 
-func (g *game) acceptsIn(ref slotRef, s slot) bool {
-	if ref.kind == kBE && g.cont.kind == contFurnace {
-		switch ref.index {
-		case 1:
-			return fuelTime(s) > 0
-		case 2:
-			return false
-		}
-	}
-	if ref.kind == kArmor {
-		return armourKind(s.ID) == ref.index
-	}
-	if ref.kind == kResult {
-		return false
-	}
-	return true
-}
-
 func (g *game) capacity(s slot) int {
 	n := 0
 	for _, in := range g.inv {
@@ -118,153 +117,25 @@ func (g *game) capacity(s slot) int {
 	return n
 }
 
-// mergeInto adds a stack into inv[from:to] and returns what is left.
-func (g *game) mergeInto(s slot, from, to int) slot {
-	for pass := 0; pass < 2 && !s.empty(); pass++ {
-		for i := from; i < to && !s.empty(); i++ {
-			in := &g.inv[i]
-			if pass == 0 && !in.empty() && in.same(s) && in.N < in.maxStack() {
-				n := min(s.N, in.maxStack()-in.N)
-				in.N, s.N = in.N+n, s.N-n
-			} else if pass == 1 && in.empty() {
-				n := min(s.N, s.maxStack())
-				*in, s.N = slot{s.ID, s.Dmg, n}, s.N-n
-			}
-		}
-	}
-	if s.N <= 0 {
-		return slot{}
-	}
-	return s
-}
-
-// consumeGrid uses up one of each ingredient after a craft.
-func (g *game) consumeGrid() {
-	w, h := g.cont.size()
-	for i := 0; i < w*h; i++ {
-		if g.cont.grid[i].N--; g.cont.grid[i].N <= 0 {
-			g.cont.grid[i] = slot{}
-		}
-	}
-}
-
-func (g *game) clickResult(shift bool) {
-	res := g.cont.result
-	if res.empty() {
-		return
-	}
-	if shift { // craft as many as the inventory has room for
-		for n := 0; n < 64 && !g.cont.result.empty(); n++ {
-			if g.capacity(g.cont.result) < int(g.cont.result.N) {
-				break
-			}
-			g.giveSlot(g.cont.result)
-			g.consumeGrid()
-			g.recompute()
-		}
-		return
-	}
-	cur := &g.cursor
-	switch {
-	case cur.empty():
-		*cur = res
-	case cur.same(res) && int(cur.N)+int(res.N) <= int(cur.maxStack()):
-		cur.N += res.N
-	default:
-		return
-	}
-	g.consumeGrid()
-	g.recompute()
-}
-
-func (g *game) quickMove(ref slotRef) {
-	s := *ref.p
-	if s.empty() {
-		return
-	}
-	var rest slot
-	switch {
-	case ref.kind == kInv && ref.index < 9:
-		rest = g.mergeInto(s, 9, 36)
-	case ref.kind == kInv:
-		if k := armourKind(s.ID); k >= 0 && g.armor[k].empty() { // armour goes on
-			g.armor[k], *ref.p = slot{s.ID, s.Dmg, 1}, slot{}
-			return
-		}
-		rest = g.mergeInto(s, 0, 9)
-	default: // from the grid or an armour slot back into the inventory
-		rest = g.mergeInto(s, 9, 36)
-		rest = g.mergeInto(rest, 0, 9)
-	}
-	*ref.p = rest
-	if ref.kind == kGrid {
-		g.recompute()
-	}
-}
-
-// clickSlot is one mouse click on a slot.
+// clickSlot is one mouse click on a slot of the open window: left or right, with shift or not. The click engine
+// does the rest (winclick.go), and tells a server.
 func (g *game) clickSlot(ref slotRef, right, shift bool) {
-	if ref.kind == kResult {
-		g.clickResult(shift)
+	m := g.localMap()
+	if m == nil {
 		return
 	}
-	if g.beOutput(ref) {
-		g.takeOutput(ref, shift)
+	idx := m.indexOf(ref.p)
+	if idx < 0 {
 		return
+	}
+	button, mode := 0, 0
+	if right {
+		button = 1
 	}
 	if shift {
-		if g.cont.kind == contChest || g.cont.kind == contFurnace {
-			g.quickMoveBE(ref)
-		} else {
-			g.quickMove(ref)
-		}
-		return
+		mode = 1
 	}
-	s, cur := ref.p, &g.cursor
-	limit := func(st slot) int8 {
-		if ref.kind == kArmor {
-			return 1
-		}
-		return st.maxStack()
-	}
-	if !cur.empty() && !g.acceptsIn(ref, *cur) {
-		return
-	}
-	switch {
-	case !right && cur.empty() && s.empty():
-	case !right && cur.empty():
-		*cur, *s = *s, slot{}
-	case !right && s.empty():
-		n := min(cur.N, limit(*cur))
-		*s = slot{cur.ID, cur.Dmg, n}
-		cur.N -= n
-	case !right && cur.same(*s):
-		n := min(cur.N, limit(*s)-s.N)
-		s.N, cur.N = s.N+n, cur.N-n
-	case !right:
-		*cur, *s = *s, *cur
-	case cur.empty() && s.empty():
-	case cur.empty(): // right click: take half
-		n := (s.N + 1) / 2
-		*cur = slot{s.ID, s.Dmg, n}
-		if s.N -= n; s.N <= 0 {
-			*s = slot{}
-		}
-	case s.empty():
-		*s = slot{cur.ID, cur.Dmg, 1}
-		cur.N--
-	case cur.same(*s) && s.N < limit(*s):
-		s.N++
-		cur.N--
-	default:
-		*cur, *s = *s, *cur
-	}
-	if cur.N <= 0 {
-		*cur = slot{}
-	}
-	if ref.kind == kGrid {
-		g.recompute()
-	}
+	g.windowClick(m, idx, button, mode)
 }
 
 type placedSlot struct {

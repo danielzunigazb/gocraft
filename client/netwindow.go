@@ -150,12 +150,18 @@ func (g *game) netSetSlot(win int8, idx int, it slot, ex itemExtra) {
 	switch {
 	case win == 0:
 		g.setWindowSlot(idx, it)
+		if idx >= 1 && idx <= 4 && g.cont.kind == contPlayer { // the 2x2 grid, while the window is open
+			g.cont.grid[idx-1] = it
+			g.recompute()
+		}
 		if idx >= 0 && idx < len(n.extra) {
 			n.extra[idx] = ex
 		}
-	case win == -1 && idx == -1:
+	case win == -1 && idx == -1: // what the mouse holds (InventoryPlayer.setItemStack), whichever window is open
 		if w := g.swin; w != nil {
 			w.cursor, w.cursorX = it, ex
+		} else {
+			g.cursor, g.cursorX = it, ex
 		}
 	case g.swin != nil && g.swin.id == win:
 		w := g.swin
@@ -357,21 +363,7 @@ func (g *game) clickServerWindow(right bool) {
 }
 
 func (g *game) sendWindowClick(idx int, button, mode byte) {
-	win := g.swin
-	p := newPacket(0x0E)
-	p.Byte(byte(win.id))
-	p.UShort(uint16(int16(idx)))
-	p.Byte(button)
-	p.UShort(uint16(win.action))
-	win.action++
-	p.Byte(mode)
-	if idx >= 0 && idx < win.n+36 {
-		it, ex := g.windowItem(idx)
-		putSlotWire(p, it, ex)
-	} else {
-		putSlotWire(p, slot{}, itemExtra{})
-	}
-	g.net.c.send(p)
+	g.windowClick(g.serverMap(), idx, int(button), int(mode))
 }
 
 // putSlotWire writes an item stack as the protocol has it, with the tag the server sent.
