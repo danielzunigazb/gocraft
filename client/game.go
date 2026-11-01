@@ -100,6 +100,8 @@ type game struct {
 	cursor                     slot
 	cursorX                    itemExtra // the tag of the stack on the mouse in the player's own window on a server
 	wui                        winUI     // what the mouse is doing in a window with slots
+	fovMod, fovModPrev         float32   // the field of view's modifier now and a tick ago (fov.go)
+	fovSet                     bool
 	health                     float32
 	food, regen                int
 	fall                       float32
@@ -625,8 +627,9 @@ func (g *game) draw() {
 
 	camPos, camDir := g.camera()
 	g.camPos, g.camDir = camPos, camDir
-	g.drawSky(g.opts.FOV*math.Pi/180, w, h, camDir)
-	proj := perspective(g.opts.FOV*math.Pi/180, float32(w)/float32(h), 0.05, 1000)
+	fov := g.worldFOV()
+	g.drawSky(fov*math.Pi/180, w, h, camDir)
+	proj := perspective(fov*math.Pi/180, float32(w)/float32(h), 0.05, 1000)
 	view := lookAt(camPos, camPos.add(camDir), g.rolledUp(camDir))
 	mvp := mul(proj, view)
 

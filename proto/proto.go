@@ -54,6 +54,9 @@ func ReadPacket(br *bufio.Reader) (int32, *Reader, error) {
 
 // Reader decodes fields from one packet. The first error sticks: later reads return zero values,
 // so a handler reads everything and checks Err once.
+// NewReader reads a packet's payload (what follows its id), for tools that look at a packet from outside.
+func NewReader(b []byte) *Reader { return &Reader{b: b} }
+
 type Reader struct {
 	b   []byte
 	err error

@@ -85,6 +85,8 @@ type netState struct {
 	ents           map[int32]*netEntity  // mobs the server spawned, for their names
 	transaction0   int16                 // the player's window's transaction number, which counts up with each click
 	border         *worldBorder          // the world border, once a server has sent one
+	lastCorrection int                   // the tick of the last Player Position And Look, for the log
+	lastKnock      int                   // and of the last knockback
 	items          map[int32]*itemEntity // dropped items the server spawned; they are in g.items too
 	pickups        []*pickupFX           // items just collected, flying to who took them
 	extra          [45]itemExtra         // names and lore of the items in the player's window, by slot
@@ -689,22 +691,29 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 		}
 		return func(g *game) {
 			p := g.feet
-			if flags&1 != 0 {
-				x += float64(p[0])
+			g.logCorrection(vec3{x, y, z}, flags)
+			// NetHandlerPlayClient.handlePlayerPosLook: an axis the server gives relative is added to where the player
+			// is and keeps its motion; one it gives absolute is where the player goes and loses its motion.
+			rel := func(bit byte, v *float64, now float64, axis int) {
+				if flags&bit != 0 {
+					*v += now
+				} else {
+					g.vel[axis] = 0
+				}
 			}
-			if flags&2 != 0 {
-				y += float64(p[1])
-			}
-			if flags&4 != 0 {
-				z += float64(p[2])
-			}
+			rel(1, &x, p[0], 0)
+			rel(2, &y, p[1], 1)
+			rel(4, &z, p[2], 2)
 			g.feet = vec3{x, y, z}
 			g.prevFeet = g.feet
-			g.vel = vec3{}
-			if flags&8 == 0 {
+			if flags&8 != 0 { // the angles are relative too: added to where the player looks
+				g.pitch += pitch * math.Pi / 180
+			} else {
 				g.pitch = pitch * math.Pi / 180
 			}
-			if flags&16 == 0 {
+			if flags&16 != 0 {
+				g.yaw += yaw * math.Pi / 180
+			} else {
 				g.yaw = yaw * math.Pi / 180
 			}
 			g.fall = 0

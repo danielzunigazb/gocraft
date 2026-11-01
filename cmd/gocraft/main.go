@@ -70,6 +70,8 @@ func main() {
 			text := ""
 			if dir == "<" && (id == 0x02 || id == 0x40 || id == 0x45 || id == 0x3F) || dir == ">" && (id == 0x01 || id == 0x17) {
 				text = " " + printable(payload)
+			} else if d := decodeTrace(dir, id, payload); d != "" {
+				text = " " + d
 			}
 			fmt.Fprintf(f, "%6dms %s 0x%02x %-22s %d bytes%s\n", time.Since(t0).Milliseconds(), dir, id, packetName(dir, id), len(payload), text)
 		}

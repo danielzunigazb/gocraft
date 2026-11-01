@@ -783,3 +783,43 @@ func TestKnockbackKeepsTheGroundForItsFirstTick(t *testing.T) {
 		t.Fatalf("after one tick %v on the ground against %v from the air: the ground must slow it more", ground, air.vel[0])
 	}
 }
+
+// Player Position And Look puts the player where the server says: an axis it gives relative is added to where the
+// player is and keeps its motion, one it gives absolute loses it, and a relative angle is added to the one the player
+// looks along.
+func TestServerTeleportKeepsTheMotionOfRelativeAxes(t *testing.T) {
+	g, c := windowGame(t)
+	g.net.received[world.ChunkPos{X: 0, Z: 0}] = true
+	g.feet = vec3{10, 5, 20}
+	g.vel = vec3{0.3, 0.2, 0.1}
+	g.yaw, g.pitch = 0.5, 0.25
+	drain(t, c)
+	pkt := func(flags byte, x, y, z float64, yaw, pitch float32) {
+		w := newPacket(0x08)
+		w.Double(x)
+		w.Double(y)
+		w.Double(z)
+		w.Float(yaw)
+		w.Float(pitch)
+		w.Byte(flags)
+		decodeFrame(t, w, nil)(g)
+	}
+	pkt(0x01|0x10, 2, 70, 30, 90, 40) // x and the yaw relative; y, z and the pitch absolute
+	if g.feet != (vec3{12, 70, 30}) {
+		t.Fatalf("feet %v, want 12 70 30", g.feet)
+	}
+	if g.vel != (vec3{0.3, 0, 0}) {
+		t.Fatalf("motion %v: the relative axis keeps its motion, the others lose it", g.vel)
+	}
+	if !near(g.yaw, 0.5+float32(math.Pi/2), 1e-5) || !near(g.pitch, float32(40*math.Pi/180), 1e-5) {
+		t.Fatalf("yaw %v pitch %v", g.yaw, g.pitch)
+	}
+	ps := drain(t, c)
+	if len(ps) != 1 || ps[0].id != 0x06 { // it answers at once with where it is
+		t.Fatalf("answered %v", ps)
+	}
+	pkt(0, 1, 2, 3, 0, 0)
+	if g.feet != (vec3{1, 2, 3}) || g.vel != (vec3{}) {
+		t.Fatalf("absolute: feet %v motion %v", g.feet, g.vel)
+	}
+}

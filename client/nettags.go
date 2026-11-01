@@ -201,7 +201,7 @@ func (g *game) drawTags(mvp *mat4, w, h int) {
 		return
 	}
 	g.enableUI()
-	tanHalf := float32(math.Tan(float64(g.opts.FOV) * math.Pi / 360))
+	tanHalf := float32(math.Tan(float64(g.worldFOV()) * math.Pi / 360))
 	tag := func(runs []styledRun, at vec3) {
 		if len(runs) == 0 || at.sub(g.camPos).dot(at.sub(g.camPos)) > tagDistance*tagDistance {
 			return
