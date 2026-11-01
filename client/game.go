@@ -963,6 +963,9 @@ func (g *game) saveScreenshot(path string) error {
 	pix := make([]byte, w*h*4)
 	gl.ReadBuffer(gl.BACK)
 	gl.ReadPixels(0, 0, int32(w), int32(h), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(pix))
+	for i := 3; i < len(pix); i += 4 { // the window shows no alpha; kept, a light translucent HUD overflowed as premultiplied
+		pix[i] = 255
+	}
 	img := image.NewRGBA(image.Rect(0, 0, w, h))
 	for y := 0; y < h; y++ { // OpenGL's rows run bottom to top
 		copy(img.Pix[y*w*4:(y+1)*w*4], pix[(h-1-y)*w*4:(h-y)*w*4])
