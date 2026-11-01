@@ -39,7 +39,7 @@ func (g *game) netDemo(menu bool) {
 	g.statusBars.shownHP, g.statusBars.lastHP = 16, 16
 	g.statusBars.blinkUntil = 9
 	sb := g.net.board()
-	sb.objective("lobby", 0, "§e§lUNIVERSOCRAFT")
+	sb.objective("lobby", 0, "§e§lUNIVERSOCRAFT", false)
 	sb.slots[1] = "lobby"
 	for i, e := range []string{"§1", "§fRango: §aVIP", "§fCoins: §e1250", "§2", "§fKills: §c312", "§fElo: §b1840", "§3", "§euniversocraft.com"} {
 		sb.setScore(e, "lobby", int32(8-i), false)
@@ -144,7 +144,7 @@ func (g *game) listDemo() {
 		g.net.tab[e.uuid] = e
 	}
 	g.net.sb = nil
-	g.net.board().objective("kills", 0, "Kills")
+	g.net.board().objective("kills", 0, "Kills", false)
 	g.net.board().slots[0] = "kills"
 	for i, nm := range names {
 		g.net.board().setScore(nm, "kills", int32(i*7%50), false)

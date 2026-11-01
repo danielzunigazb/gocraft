@@ -12,6 +12,7 @@ import (
 
 type scoreObjective struct {
 	name, display string
+	hearts        bool // its type is "hearts": the list shows hearts for the score
 }
 
 type scoreTeam struct {
@@ -38,13 +39,13 @@ func (n *netState) board() *scoreboard {
 }
 
 // objective applies Scoreboard Objective: mode 0 creates, 1 removes, 2 renames.
-func (sb *scoreboard) objective(name string, mode byte, display string) {
+func (sb *scoreboard) objective(name string, mode byte, display string, hearts bool) {
 	switch mode {
 	case 0, 2:
 		if o := sb.objectives[name]; o != nil && mode == 2 {
-			o.display = display
+			o.display, o.hearts = display, hearts
 		} else {
-			sb.objectives[name] = &scoreObjective{name, display}
+			sb.objectives[name] = &scoreObjective{name, display, hearts}
 		}
 	case 1:
 		delete(sb.objectives, name)

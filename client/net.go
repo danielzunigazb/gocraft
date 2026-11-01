@@ -483,15 +483,15 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 	case 0x3B: // scoreboard objective
 		name := r.String(256)
 		mode := r.Byte()
-		display := ""
+		display, hearts := "", false
 		if mode != 1 {
 			display = r.String(256)
-			r.String(64) // type: integer or hearts
+			hearts = r.String(64) == "hearts" // type: integer or hearts
 		}
 		if r.Err() != nil {
 			return nil
 		}
-		return func(g *game) { g.net.board().objective(name, mode, display) }
+		return func(g *game) { g.net.board().objective(name, mode, display, hearts) }
 	case 0x3C: // update score
 		entry := r.String(256)
 		action := r.Byte()

@@ -2,6 +2,7 @@ package client
 
 import (
 	"math"
+	"strconv"
 
 	"gocraft/proto"
 )
@@ -216,12 +217,40 @@ func (g *game) drawTags(mvp *mat4, w, h int) {
 		}
 	}
 	for _, p := range n.remote {
-		name := p.name
-		if name == "" {
-			name = n.names[p.uuid]
-		}
-		if name != "" { // the team's prefix and suffix are part of the name, as in the game
-			tag(legacyRuns(n.sb.format(name), defaultStyle), p.pos.add(vec3{0, 1.8 + 0.5, 0}))
+		for _, l := range n.playerLabels(p, g.camPos) {
+			tag(l.runs, l.at)
 		}
 	}
+}
+
+// nameLine is the height of a line of a player's label, in blocks: the font's 9 pixels times 1.15 at 0.02666667
+// blocks a pixel (RenderPlayer.renderOffsetLivingLabel).
+const nameLine = 9 * 1.15 * 0.02666667
+
+type tagLabel struct {
+	runs []styledRun
+	at   vec3
+}
+
+// playerLabels are the lines over a player: the score of the objective shown under names, when the player is
+// within 10 blocks, and above it the name with its team's prefix and suffix.
+func (n *netState) playerLabels(p *remotePlayer, cam vec3) []tagLabel {
+	name := p.name
+	if name == "" {
+		name = n.names[p.uuid]
+	}
+	if name == "" {
+		return nil
+	}
+	at := p.pos.add(vec3{0, 1.8 + 0.5, 0})
+	var out []tagLabel
+	if sb := n.sb; sb != nil {
+		if o := sb.objectives[sb.slots[2]]; o != nil {
+			if d := p.pos.sub(cam); d.dot(d) < 100 {
+				out = append(out, tagLabel{legacyRuns(strconv.Itoa(int(sb.scores[o.name][name]))+" "+o.display, defaultStyle), at})
+				at = at.add(vec3{0, nameLine, 0})
+			}
+		}
+	}
+	return append(out, tagLabel{legacyRuns(n.sb.format(name), defaultStyle), at})
 }

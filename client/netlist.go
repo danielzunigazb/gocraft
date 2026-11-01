@@ -232,6 +232,10 @@ func (g *game) drawTabList(w, h int) {
 		names[i] = n.tabName(e)
 		nameW = max(nameW, g.runsWidth(names[i]))
 		if listObj != nil && e.gamemode != 3 {
+			if listObj.hearts { // a row of up to ten hearts, 9 pixels each
+				scoreW = 90 + 5
+				continue
+			}
 			scores[i] = legacyRuns("§e"+strconv.Itoa(int(n.sb.scores[listObj.name][e.name])), defaultStyle)
 			scoreW = max(scoreW, g.runsWidth(scores[i])+5)
 		}
@@ -291,6 +295,19 @@ func (g *game) drawTabList(w, h int) {
 		}
 		if scores[i] != nil {
 			g.drawRuns(scores[i], float32(x+colW-12-g.runsWidth(scores[i]))*fs, float32(yy)*fs, fs, 1, true)
+		} else if listObj != nil && listObj.hearts && list[i].gamemode != 3 {
+			v := int(n.sb.scores[listObj.name][list[i].name])
+			for k := 0; k < min((max(v, 0)+1)/2, 10); k++ {
+				hx := float32(x+colW-12-90+k*9) * fs
+				hd.rect(hx, float32(yy)*fs, 9*fs, 9*fs, 16, 0, 9, 9, 256, 256, [4]float32{1, 1, 1, 1})
+				switch {
+				case 2*k+1 < v:
+					hd.rect(hx, float32(yy)*fs, 9*fs, 9*fs, 52, 0, 9, 9, 256, 256, [4]float32{1, 1, 1, 1})
+				case 2*k+1 == v:
+					hd.rect(hx, float32(yy)*fs, 9*fs, 9*fs, 61, 0, 9, 9, 256, 256, [4]float32{1, 1, 1, 1})
+				}
+			}
+			hd.flush(hd.icons)
 		}
 		hd.rect(float32(x+colW-11)*fs, float32(yy)*fs, 10*fs, 8*fs, 0, float32(176+pingBars(list[i].ping)*8), 10, 8, 256, 256, [4]float32{1, 1, 1, 1})
 		hd.flush(hd.icons)
