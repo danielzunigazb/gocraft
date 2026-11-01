@@ -14,7 +14,7 @@ import (
 var netMobTypes = map[byte]string{
 	50: "Creeper", 51: "Skeleton", 52: "Spider", 54: "Zombie", 55: "Slime", 57: "Zombie", 59: "CaveSpider",
 	65: "Bat", 66: "Witch", 90: "Pig", 91: "Sheep", 92: "Cow", 93: "Chicken", 94: "Squid", 101: "Rabbit", 120: "Villager",
-	58: "Enderman", 61: "Blaze", 95: "Wolf", 99: "VillagerGolem", 56: "Ghast", 62: "LavaSlime", 97: "SnowMan",
+	58: "Enderman", 61: "Blaze", 95: "Wolf", 99: "VillagerGolem", 56: "Ghast", 62: "LavaSlime", 97: "SnowMan", 53: "Giant", 60: "Silverfish", 67: "Endermite", 96: "MushroomCow",
 }
 
 const (

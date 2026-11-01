@@ -740,6 +740,9 @@ func (g *game) loop() error {
 			g.netDemo(false)
 			g.sedit = &signEditor{pos: [3]int32{0, 4, 0}, lines: [4]string{"[SkyWars]", "Solo", "8/12", ""}, line: 3}
 			g.openScreen(screenSignEdit)
+		case "networms":
+			g.netDemo(false)
+			g.wormsDemo()
 		case "netpack":
 			g.netDemo(false)
 			g.net.packAsk = &packOffer{url: "https://example.com/pack.zip", hash: strings.Repeat("a", 40)}

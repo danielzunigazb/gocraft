@@ -30,7 +30,8 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 - [ ] Cabeza grande de los bebés
 - [x] Modelos de ghast (tentáculos de Random(1660), ojos al disparar) y magma cube (láminas y núcleo)
 - [x] Snowman (ModelSnowMan y la calabaza de LayerSnowmanHead)
-- [ ] Modelos: caballo, ocelote, guardián
+- [x] Silverfish, endermite, gigante (zombi a escala 6) y mooshroom (sin los champiñones del lomo todavía)
+- [ ] Modelos: caballo, ocelote, guardián, wither, dragón
 - [x] Borde del mundo (0x44), dibujado con mezcla alfa normal (la aditiva de vanilla dio colores erróneos en headless)
 - [x] Mapas (0x34): paleta MapColor, rectángulos de colores y el mapa dibujado en un item frame
 - [ ] Mapa en la mano y marcadores de los mapas; remolino de poción lanzada

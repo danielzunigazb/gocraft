@@ -6,8 +6,8 @@
       "name": "Render",
       "weight": 18.3,
       "percent": 54,
-      "done": "mallado por columnas, luz suave, modelos de bloque, 23 modelos de mobs, partículas, cielo, nombres y carteles, mapas en item frames",
-      "missing": "renderers de caballo, ocelote, guardián, wither y dragón; mapa en la mano"
+      "done": "mallado por columnas, luz suave, modelos de bloque, 27 modelos de mobs, partículas, cielo, nombres y carteles, mapas en item frames",
+      "missing": "renderers de caballo, ocelote, guardián, wither y dragón; champiñones del mooshroom; mapa en la mano"
     },
     {
       "id": "entities",

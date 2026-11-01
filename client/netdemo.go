@@ -192,6 +192,7 @@ func (g *game) mobsDemo() {
 		{50, map[int]any{16: 1}}, {55, map[int]any{16: 2}}, {54, map[int]any{12: 1}}, {101, map[int]any{18: 4}}, {92, nil}, {52, nil},
 		{58, nil}, {61, nil}, {99, nil}, {95, nil}, {95, map[int]any{16: 2}}, {95, map[int]any{16: 4}},
 		{62, map[int]any{16: 2}}, {62, nil}, {56, map[int]any{16: 1}},
+		{60, nil}, {67, nil}, {96, nil}, {53, nil},
 	} {
 		at := g.feet.add(ground).add(f.scale(5 + float64(i%2)*2)).add(right.scale(float64(i%8)*1.5 - 5)).add(f.scale(float64(i/8) * 3.5))
 		e := &netEntity{eid: int32(200 + i), kind: d.kind, pos: at, prev: at, target: at}
@@ -201,6 +202,26 @@ func (g *game) mobsDemo() {
 		if d.kind == 50 {
 			e.mob.m.fuse = 24
 		}
+		g.net.addEntity(e)
+	}
+}
+
+// wormsDemo lines up the silverfish, the endermite, the mooshroom and a giant (far back), close to the camera.
+func (g *game) wormsDemo() {
+	g.net.ents = nil
+	f := look(g.yaw, 0)
+	right := vec3{-f[2], 0, f[0]}
+	ground := vec3{0, math.Floor(g.feet[1]) - g.feet[1], 0}
+	face := g.yawDeg() + 180
+	for i, k := range []byte{60, 67, 96, 53} {
+		dist, side := 2.5, float64(i)*1.4-2.1
+		if k == 53 {
+			dist, side = 22, 0
+		}
+		at := g.feet.add(ground).add(f.scale(dist)).add(right.scale(side))
+		e := &netEntity{eid: int32(300 + i), kind: k, pos: at, prev: at, target: at}
+		e.mob = newNetMob(k, at, face, 0, face)
+		e.mob.m.yaw, e.mob.m.prevYaw = face, face
 		g.net.addEntity(e)
 	}
 }
