@@ -262,13 +262,13 @@ Escenas: `netmobs`, `netstands`, `netpaintings`, `netframes`, `netheads`, `netge
 
 ## Limitaciones conocidas
 
-- Las ventanas de encantamiento, yunque, alquimia, faro y aldeano se dibujan como filas de cofre y no se predicen;
-  los clics se envían y el servidor responde.
+- Las ventanas de faro, aldeano y caballo se dibujan como filas de cofre y no se predicen; los clics se envían y el
+  servidor responde. Las de encantamiento, yunque y alquimia tienen su propio dibujo, pero tampoco se predicen.
 - Iluminación suave solo en las caras completas de bloques; escaleras, losas y plantas conservan la luz plana.
 - El borde del mundo se mezcla con alfa normal; vanilla suma el color, y esa mezcla produjo colores incorrectos en el
   renderizador sin pantalla utilizado en las pruebas.
-- En el renderizado sin pantalla (`xvfb`), los paneles de inventario se dibujan sin el relleno gris. No se ha verificado
-  si ocurre con una ventana real.
+- Las capturas se tomaron con un paquete de recursos cuyas texturas de interfaz tienen los paneles transparentes (alfa 0
+  en el relleno gris), así que las ventanas se ven sin ese relleno. Con las texturas del jar, el relleno es opaco.
 - El comportamiento en servidores con anticheat basado en predicción de movimiento sigue en revisión; el registro de
   red (`-netlog`) está pensado para ese análisis.
 
