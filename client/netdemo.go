@@ -235,6 +235,27 @@ func (g *game) standsDemo() {
 	}
 }
 
+// paintingsDemo hangs a row of the game's paintings, of every size, on a stone wall facing the player.
+func (g *game) paintingsDemo() {
+	g.net.ents = nil
+	f := look(g.yaw, 0)
+	base := g.feet.add(f.scale(7))
+	bx, by, bz := int32(math.Floor(base[0])), int32(math.Floor(g.feet[1])), int32(math.Floor(base[2]))
+	for x := bx - 12; x <= bx+12; x++ {
+		for y := by; y < by+6; y++ {
+			g.setBlock(x, y, bz+1, 1<<4)
+		}
+	}
+	x := bx - 11
+	for i, title := range []string{"Kebab", "Aztec", "Pool", "Wanderer", "Match", "Skeleton", "Fighters", "Sunset", "Graham", "Pigscene"} {
+		art, _ := paintingArtByTitle(title)
+		p := &paintingState{art: art, facing: 2, hang: [3]int32{x + int32(art.w/32), by + 1, bz}}
+		c := p.center()
+		g.net.addEntity(&netEntity{eid: int32(500 + i), painting: p, pos: c, prev: c, target: c})
+		x += int32(art.w/16) + 1
+	}
+}
+
 // particlesDemo shows what servers send most: a ring of coloured dust, hearts, notes, potion swirls, green
 // sparkles, flames, portal specks, crits and a big explosion puff, a few ticks old.
 func (g *game) particlesDemo() {

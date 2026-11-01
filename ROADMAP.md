@@ -15,7 +15,8 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 - [x] Partículas, efectos de mundo, explosiones, chispas de crítico
 - [x] Grietas al picar, carteles, orbes de experiencia
 - [x] Barra de jefe (Wither o Dragón falsos), tapas de cofre, notas de note block
-- [ ] Cuadros e item frames, rayos, correas y monturas
+- [x] Cuadros (paintings): las 26 obras de EnumArt, posición, luz por cuadro y caja de clic
+- [ ] Item frames, rayos, correas y monturas
 - [ ] Cabezas, banners y spawners (0x35); pistones
 - [x] Armor stands visibles: modelo exacto, pose, brazos, plato, pequeños, armadura y objeto en la mano
 - [ ] Cabezas y bloques sobre la cabeza de un armor stand (calaveras con skin)

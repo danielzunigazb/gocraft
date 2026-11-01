@@ -41,6 +41,9 @@ func (g *game) drawMobs() {
 			if e.stand != nil && !g.offScreen(e.pos, 3) {
 				g.emitStand(groups, e, e.small)
 			}
+			if e.painting != nil && !g.offScreen(e.pos, 4) {
+				g.emitPainting(groups, e)
+			}
 		}
 	}
 	if g.net != nil {

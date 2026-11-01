@@ -202,7 +202,7 @@ func loadResources(jarPath string, packs []string) (*resources, error) {
 				continue
 			}
 			dir := "entity/"
-			if strings.HasPrefix(path, "environment/") { // the End's sky is not an entity texture
+			if strings.HasPrefix(path, "environment/") || strings.HasPrefix(path, "painting/") { // the End's sky and the paintings are not entity textures
 				dir = ""
 			}
 			if strings.HasPrefix(path, "armor/") { // what is worn is under models/

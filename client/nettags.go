@@ -26,9 +26,10 @@ type netEntity struct {
 	invisible    bool
 	small        bool
 	marker       bool
-	mob          *netMob     // a mob gocraft has a model for
-	stand        *standState // an armor stand's pose, yaw and what it wears
-	health       float32     // metadata 6, for what shows a health bar
+	mob          *netMob        // a mob gocraft has a model for
+	stand        *standState    // an armor stand's pose, yaw and what it wears
+	painting     *paintingState // a painting on a wall
+	health       float32        // metadata 6, for what shows a health bar
 	healthSet    bool
 	orb          int // an experience orb's value
 	age          int // ticks since it appeared: an orb's colour pulses with it
@@ -168,6 +169,9 @@ func (e *netEntity) apply(m map[int]any) {
 
 // box is what a click hits: a mob's own box, or a player-sized one for what gocraft has no model for.
 func (e *netEntity) box() aabb {
+	if e.painting != nil {
+		return e.painting.box(e.pos)
+	}
 	hw := 0.3
 	if e.mob != nil {
 		w, _ := e.mob.dims()

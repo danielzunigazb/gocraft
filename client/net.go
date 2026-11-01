@@ -1164,6 +1164,19 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 		}
 		e := &netEntity{eid: eid, obj: kind, owner: data, pos: vec3{x, y, z}, prev: vec3{x, y, z}, target: vec3{x, y, z}, vel: vel}
 		return func(g *game) { g.net.addEntity(e) }
+	case 0x10: // spawn painting
+		eid, title, at, facing, ok := parseSpawnPainting(r)
+		if !ok {
+			return nil
+		}
+		art, known := paintingArtByTitle(title)
+		if !known { // the game builds the entity anyway, with an art it picked; one it has no title for is not drawn
+			return nil
+		}
+		p := &paintingState{art: art, facing: facing, hang: at}
+		c := p.center()
+		e := &netEntity{eid: eid, painting: p, pos: c, prev: c, target: c}
+		return func(g *game) { g.net.addEntity(e) }
 	case 0x11: // spawn experience orb
 		eid := r.VarInt()
 		x, y, z := float64(r.Int())/32, float64(r.Int())/32, float64(r.Int())/32
