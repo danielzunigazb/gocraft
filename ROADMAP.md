@@ -46,7 +46,8 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 - [x] Scoreboard (lista con números o corazones, lateral y bajo el nombre), tab con cabeceras, títulos, skins
 - [x] Autocompletado con Tab
 - [x] Cursiva dibujada, como FontRenderer: arriba +1 y abajo -1 píxel
-- [ ] Editor de carteles (0x36), estadísticas (0x37)
+- [x] Editor de carteles (0x36 y 0x12): cuatro líneas, flechas, Enter, borrar, ancho de 90 px, Hecho y Escape
+- [ ] Estadísticas (0x37)
 - [ ] Resource packs: hoy se rechazan
 
 ## Servidor propio

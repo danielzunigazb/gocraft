@@ -912,6 +912,12 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 			return nil
 		}
 		return func(g *game) { g.netBlockAction([3]int32{x, y, z}, id, param, blk) }
+	case 0x36: // open sign editor: the player is to write on this sign
+		x, y, z := proto.UnpackPos(r.Long())
+		if r.Err() != nil {
+			return nil
+		}
+		return func(g *game) { g.openSignEditor([3]int32{x, y, z}) }
 	case 0x34: // map data: the colours of a map, whole or a rectangle of it
 		id, scale, icons, cols, rows, x0, z0, data, ok := parseMap(r)
 		if !ok {

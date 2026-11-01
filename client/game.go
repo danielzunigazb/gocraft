@@ -171,6 +171,7 @@ type game struct {
 	keyHeld                    func(action string) bool     // tests: which keys are down when there is no window
 	signs                      map[[3]int32]*[4][]styledRun // the text of the signs, by block
 	skulls                     map[[3]int32]*skullEntity    // the heads a server put on blocks
+	sedit                      *signEditor                  // the sign being edited
 	spawners                   map[[3]int32]*spawnerState   // the mobs turning in spawner cages
 	flash                      int                          // ticks left of the sky's flash from a lightning bolt
 	entMobs                    entityMesh
@@ -477,6 +478,8 @@ func (g *game) onKey(w *glfw.Window, key glfw.Key, _ int, action glfw.Action, _ 
 			g.closeContainer()
 		case screenServerWin:
 			g.closeServerWindow(true)
+		case screenSignEdit:
+			g.closeSignEditor()
 		case screenInventory, screenPause:
 			g.closeScreen()
 		case screenWorlds:
@@ -591,7 +594,7 @@ func (g *game) onMouse(_ *glfw.Window, b glfw.MouseButton, action glfw.Action, _
 		g.rebinding = ""
 		return
 	}
-	if g.screen.isMenu() || g.screen == screenDead {
+	if g.screen.isMenu() || g.screen == screenDead || g.screen == screenSignEdit {
 		g.uiClick = b == glfw.MouseButtonLeft
 		return
 	}
@@ -674,6 +677,7 @@ func (g *game) draw() {
 	if g.screen == screenServerWin { // over the chat, as the game's screens are
 		g.drawServerWindow(w, h)
 	}
+	g.drawSignEditor(w, h)
 	g.drawDeathScreen(w, h)
 	g.drawMenus()
 }
@@ -728,6 +732,10 @@ func (g *game) loop() error {
 		case "netmobs":
 			g.netDemo(false)
 			g.mobsDemo()
+		case "netsignedit":
+			g.netDemo(false)
+			g.sedit = &signEditor{pos: [3]int32{0, 4, 0}, lines: [4]string{"[SkyWars]", "Solo", "8/12", ""}, line: 3}
+			g.openScreen(screenSignEdit)
 		case "netenchant":
 			g.specialWindowDemo(kindEnchant)
 		case "netanvil":

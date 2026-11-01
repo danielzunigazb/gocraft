@@ -75,12 +75,12 @@ las originales. Los paquetes se leen de la carpeta indicada con `-packs` y se ac
 |---|--:|--:|---|---|---|
 | Render | 18.3 % | 54 % | `█████░░░░░` | mallado por columnas, luz suave, modelos de bloque, 22 modelos de mobs, partículas, cielo, nombres y carteles, mapas en item frames | renderers de caballo, ocelote, guardián, snowman, wither y dragón; mapa en la mano |
 | Entidades | 16.6 % | 40 % | `████░░░░░░` | física y movimiento del jugador, jugadores remotos, items, proyectiles, anzuelo, armor stands, cuadros, item frames, cabezas, 22 tipos de mob con IA básica | unos 38 tipos de entidad, la mayoría de las 80 metas de IA, minecarts, monturas |
-| Cliente (interfaz, opciones, sonido) | 15.2 % | 53 % | `█████░░░░░` | HUD, chat con estilos, menús, inventario, opciones, sonido, paquetes de recursos, mundos guardados | inventario creativo, editor de carteles, libros, estadísticas |
+| Cliente (interfaz, opciones, sonido) | 15.2 % | 53 % | `█████░░░░░` | HUD, chat con estilos, menús, inventario, opciones, sonido, paquetes de recursos, mundos guardados, editor de carteles | inventario creativo, libros, estadísticas |
 | Generación de mundo | 13.6 % | 55 % | `██████░░░░` | biomas exactos, terreno al 99.9 %, cuevas, barrancos, nether, end, árboles, minerales, lagos | aldeas, fortalezas, minas, templos, monumentos, botín de mazmorras, mesas de arcilla y árboles gigantes |
 | Bloques y entidades-bloque | 12.2 % | 27 % | `███░░░░░░░` | colisiones, dureza y herramientas, cofres, hornos, carteles, notas, apertura de tapas, cabezas y spawners | flujo de fluidos, cultivos, fuego, redstone, pistones, ticks aleatorios |
 | Servidor integrado y comandos | 8.2 % | 18 % | `██░░░░░░░░` | streaming de chunks, jugadores, combate básico, aparición, guardado del mundo y de los jugadores, comandos básicos | los otros 50 comandos del juego, mobs del lado del servidor, ventanas e inventario del lado del servidor |
 | Items, crafteo y contenedores | 7.3 % | 61 % | `██████░░░░` | motor de clics (modos 0-6), 111 recetas, ventanas de cofre, horno, mesa, encantamientos, yunque y alquimia | faro, aldeano, caballo, pociones, libros, fuegos artificiales |
-| Protocolo de red | 5.5 % | 86 % | `█████████░` | 62 de 74 paquetes servidor→cliente y 23 de 24 cliente→servidor, compresión, login en línea y sin conexión | 12 paquetes servidor→cliente, 1 cliente→servidor |
+| Protocolo de red | 5.5 % | 86 % | `█████████░` | 63 de 74 paquetes servidor→cliente y 24 de 24 cliente→servidor, compresión, login en línea y sin conexión | 11 paquetes servidor→cliente, 0 cliente→servidor |
 | Núcleo del mundo | 3.1 % | 72 % | `███████░░░` | formato Anvil, iluminación, chunks | guardado completo de entidades y estadísticas |
 
 El peso de cada área es su parte del bytecode del client.jar de 1.8.9 (2507 clases, 1.22 MB), agrupado por subsistema a partir de la herencia de las clases. El porcentaje de avance es una estimación del mantenedor, área por área; solo el protocolo se contó paquete a paquete. El total es el promedio ponderado.
@@ -134,7 +134,7 @@ La lógica corre a 20 ticks por segundo; el dibujo, a la tasa de la pantalla. En
 
 ## Cobertura del protocolo
 
-Paquetes que el cliente interpreta (62 identificadores de servidor a cliente) y los que emite (23 de cliente a servidor).
+Paquetes que el cliente interpreta (63 identificadores de servidor a cliente) y los que emite (24 de cliente a servidor).
 Los identificadores no listados se leen y se ignoran sin error.
 
 ### Servidor → cliente
@@ -144,7 +144,7 @@ Los identificadores no listados se leen y se ignoran sin error.
 | Conexión y estado | `0x01` entrada, `0x07` reaparición, `0x08` posición, `0x09` ranura activa, `0x06` salud, `0x1F` experiencia, `0x20` propiedades, `0x2B` estado de juego, `0x39` habilidades, `0x40` desconexión, `0x3F` mensaje de plugin |
 | Chat e interfaz | `0x02` chat, `0x45` títulos, `0x3A` autocompletado, `0x47` cabecera y pie, `0x38` lista de jugadores, `0x48` paquete de recursos (rechazado) |
 | Marcador | `0x3B` objetivo, `0x3C` puntuación, `0x3D` visualización, `0x3E` equipos |
-| Mundo | `0x21` columna, `0x26` columnas en bloque, `0x22` bloques de una columna, `0x23` cambio de bloque, `0x24` acción de bloque, `0x25` animación de picado, `0x03` hora, `0x44` borde del mundo, `0x33` cartel, `0x34` mapa, `0x35` bloque-entidad (calaveras y *spawners*) |
+| Mundo | `0x21` columna, `0x26` columnas en bloque, `0x22` bloques de una columna, `0x23` cambio de bloque, `0x24` acción de bloque, `0x25` animación de picado, `0x03` hora, `0x44` borde del mundo, `0x33` cartel, `0x34` mapa, `0x35` bloque-entidad (calaveras y *spawners*), `0x36` editor de carteles |
 | Efectos | `0x27` explosión, `0x28` efecto, `0x29` sonido, `0x2A` partícula |
 | Entidades | `0x0C` jugador, `0x0E` objeto (flechas, anzuelo, *item frames*), `0x0F` mob (y *armor stands*), `0x10` cuadro, `0x11` orbe, `0x2C` entidad global (rayo), `0x13` destruir, `0x15`/`0x16`/`0x17` movimiento relativo, `0x18` teletransporte, `0x19` cabeza, `0x12` velocidad, `0x1A` estado, `0x1C` metadatos, `0x1D`/`0x1E` efectos, `0x04` equipo, `0x0B` animación, `0x0D` recogida |
 | Ventanas | `0x2D` abrir, `0x2E` cerrar, `0x2F` ranura, `0x30` contenido, `0x31` propiedad, `0x32` confirmación de transacción |
@@ -154,12 +154,12 @@ Los identificadores no listados se leen y se ignoran sin error.
 Conexión y sesión (`0x00` *keep alive*, `0x01` chat, `0x15` ajustes, `0x17` mensaje de plugin, `0x19` paquete de
 recursos), movimiento (`0x03`, `0x04`, `0x05`, `0x06`), interacción (`0x02` uso de entidad, `0x07` excavación,
 `0x08` colocación y uso, `0x09` ranura activa, `0x0A` brazo, `0x0B` acción de entidad, `0x13` habilidades),
-ventanas (`0x0D` cierre, `0x0E` clic, `0x0F` confirmación, `0x10` inventario creativo, `0x11` encantar), `0x14` autocompletado y
+ventanas (`0x0D` cierre, `0x0E` clic, `0x0F` confirmación, `0x10` inventario creativo, `0x11` encantar, `0x12` actualizar cartel), `0x14` autocompletado y
 `0x16` estado del cliente.
 
 ### No implementado
 
-Editor de carteles (`0x36`), estadísticas (`0x37`), monturas y correas (`0x1B`), estandartes (el resto de
+Estadísticas (`0x37`), monturas y correas (`0x1B`), estandartes (el resto de
 las acciones de `0x35`), pistones animados, el mapa en la mano y sus marcadores, y las ventanas de faro, aldeano y caballo.
 
 ## Fidelidad con vanilla

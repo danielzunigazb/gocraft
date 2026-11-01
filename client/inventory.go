@@ -14,6 +14,7 @@ const (
 	screenContainer
 	screenServerWin // a window the server opened: a menu, a chest
 	screenDead      // the player died on a server: Respawn
+	screenSignEdit  // the editor of a sign a server asked to be edited
 	screenChat
 	screenTitle
 	screenWorlds
