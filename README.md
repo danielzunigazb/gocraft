@@ -247,6 +247,10 @@ Comandos (los puede usar cualquier jugador; un servidor sin cuentas no tiene ope
 `/msg`, `/tp` (coordenadas con `~` o un jugador), `/time set|add`, `/give` (por id o por nombre), `/kill` (solo en
 supervivencia), `/seed` y `/save-all`.
 
+`go run ./cmd/gocraft-load -addr host:25565 -bots 4 -seconds 30` mete bots que se alejan del origen en direcciones
+distintas, para que el servidor tenga que generar columnas nuevas, y cuenta columnas por segundo y el tiempo hasta la
+primera.
+
 `./gocraft -h` lista todos. Se lee `options.txt` en el formato de vanilla; `ao:0` desactiva la iluminación suave.
 Variables de entorno: `GOCRAFT_BRAND` (identificador anunciado al servidor; por defecto `gocraft`),
 `GOCRAFT_MSA_CLIENT_ID` (véase `ACCOUNT.md`), `GOCRAFT_NO_AUDIO`, `GOCRAFT_PREVIEW`.
