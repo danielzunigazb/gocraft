@@ -731,10 +731,10 @@ func TestServerPicksTheHeldSlot(t *testing.T) {
 	}
 }
 
-// Hitting another player on a server sends the attack and changes nothing else on the client, as in the game:
-// the sprint and the speed go on, no stop-sprint is sent, and the weapon does not wear (the server does all
-// that and says so).
-func TestHittingAPlayerLeavesTheClientAlone(t *testing.T) {
+// Hitting another player on a server sends the attack and, as the game's client does (EntityOtherPlayerMP says the
+// blow landed), ends the attacker's sprint and slows them to 0.6; the server does the same to its copy and a
+// movement check expects it. A mob is not like that: the client's world never lets a blow on it land.
+func TestHittingAPlayerEndsTheSprintAsTheGameDoes(t *testing.T) {
 	g, c := windowGame(t)
 	g.net.received[world.ChunkPos{X: 0, Z: 0}] = true
 	g.feet, g.prevFeet = vec3{0.5, 4, 0.5}, vec3{0.5, 4, 0.5}
@@ -751,14 +751,22 @@ func TestHittingAPlayerLeavesTheClientAlone(t *testing.T) {
 	if !g.attackClick() {
 		t.Fatal("the click did not reach the player in front")
 	}
-	if !g.sprinting || g.vel[2] != 0.28 || g.inv[0].Dmg != 0 || g.exhaustion != hunger {
-		t.Fatalf("after the blow: sprinting %v vel %v wear %d hunger %v", g.sprinting, g.vel, g.inv[0].Dmg, g.exhaustion)
+	if g.sprinting || !near(g.vel[2], 0.28*0.6, 1e-9) {
+		t.Fatalf("after the blow: sprinting %v vel %v, want the sprint ended and the motion at 0.6", g.sprinting, g.vel)
 	}
-	g.sendActions()
+	if g.inv[0].Dmg == 0 || g.exhaustion == hunger {
+		t.Fatalf("the blow cost nothing: wear %d hunger %v", g.inv[0].Dmg, g.exhaustion)
+	}
+	g.sendActions() // the end of the sprint is told to the server before the next movement, as the game does
+	stopped := false
 	for _, p := range drain(t, c) {
 		if p.id == 0x0B {
-			t.Fatal("an entity action went out because of a blow: the client stopped sprinting")
+			p.r.VarInt()
+			stopped = p.r.VarInt() == 4
 		}
+	}
+	if !stopped {
+		t.Fatal("the end of the sprint was not told to the server")
 	}
 }
 

@@ -47,15 +47,30 @@ func (g *game) playerTarget() (*remotePlayer, float32, bool) {
 }
 
 // attackEntity is the click on another player or a mob of the server: the server hears of the blow and works
-// out everything else. The game's client does nothing more: EntityPlayer.attackTargetEntityWithCurrentItem
-// only acts when attackEntityFrom says the blow landed, and in the client's world it never does. So the
-// player keeps their stride and their sprint (the server slows its own copy of them), the hunger and the
-// weapon's wear are the server's, and a sprinting player is not told to stop and start again with each hit.
+// out the damage. What the client does of its own is what EntityPlayer.attackTargetEntityWithCurrentItem does
+// when attackEntityFrom says the blow landed. For another player it says so (EntityOtherPlayerMP.attackEntityFrom
+// is `return true`): a sprinting attacker loses their sprint and a third of their speed (0.6 of their motion),
+// and pays the hunger and the weapon's wear. A server expects exactly that: it does it to its own copy of the
+// player, and a movement check that sees the attacker go on at a sprint's speed after a blow puts them back.
+// For a mob (EntityLivingBase.attackEntityFrom is false in the client's world) the client does nothing.
 func (g *game) attackEntity(eid int32) {
 	w := newPacket(0x02)
 	w.VarInt(eid)
 	w.VarInt(1) // attack
 	g.net.c.send(w)
+	if g.net.remote[eid] == nil {
+		return
+	}
+	if g.sprinting {
+		g.vel[0], g.vel[2] = g.vel[0]*0.6, g.vel[2]*0.6
+		g.setSprinting(false)
+	}
+	g.exhaust(0.3)
+	if class, _ := toolOf(g.held()); class == "sword" {
+		g.useDurability(1)
+	} else if class != "" {
+		g.useDurability(2)
+	}
 }
 
 // sendActions tells the server when the sprint or the sword's block starts or stops.
