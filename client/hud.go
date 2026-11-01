@@ -103,6 +103,19 @@ func (h *hud) rect(x, y, w, hgt, sx, sy, sw, sh, texW, texH float32, col [4]floa
 	}
 }
 
+// rectLean is rect with the top edge moved right by lean and the bottom edge left by it: an italic glyph.
+func (h *hud) rectLean(x, y, w, hgt, sx, sy, sw, sh, texW, texH float32, col [4]float32, lean float32) {
+	if lean == 0 {
+		h.rect(x, y, w, hgt, sx, sy, sw, sh, texW, texH, col)
+		return
+	}
+	u0, v0, u1, v1 := sx/texW, sy/texH, (sx+sw)/texW, (sy+sh)/texH
+	q := [4][4]float32{{x + lean, y, u0, v0}, {x - lean, y + hgt, u0, v1}, {x + w - lean, y + hgt, u1, v1}, {x + w + lean, y, u1, v0}}
+	for _, i := range [6]int{0, 1, 2, 0, 2, 3} {
+		h.verts = append(h.verts, q[i][0], q[i][1], q[i][2], q[i][3], col[0], col[1], col[2], col[3])
+	}
+}
+
 func (h *hud) flush(tex uint32) {
 	if len(h.verts) == 0 {
 		return

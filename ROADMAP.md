@@ -42,7 +42,8 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 ## Interfaz
 - [x] Scoreboard (lista con números o corazones, lateral y bajo el nombre), tab con cabeceras, títulos, skins
 - [x] Autocompletado con Tab
-- [ ] Cursiva dibujada (el parser ya la lee), editor de carteles (0x36), estadísticas (0x37)
+- [x] Cursiva dibujada, como FontRenderer: arriba +1 y abajo -1 píxel
+- [ ] Editor de carteles (0x36), estadísticas (0x37)
 - [ ] Resource packs: hoy se rechazan
 
 ## Servidor propio

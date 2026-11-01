@@ -19,6 +19,7 @@ func (g *game) netDemo(menu bool) {
 		`{"text":"§7[§aUni§7] §fRecompensas: Hola §bSteve§f, tengo §e1 §frecompensas para ti... ven a reclamarlas."}`,
 		`{"text":"Posición #4185 (-177) en Victorias de Ranked","color":"white","extra":[{"text":" ¡Ñandú! ","color":"red","bold":true,"underlined":true}]}`,
 		`{"text":"§c▬▬▬▬▬▬ §a✔ §4❤ §fLeyenda §e★ §7› §6§l●"}`,
+		`{"text":"§oTexto en cursiva §r§7y §o§bcursiva con color§r, §n§osubrayada§r."}`,
 		`{"text":"§c§lSkyWars §7» §fpartida §nlista§r §kabcd §rsin formato"}`,
 	} {
 		g.addChatRuns(parseChat(js))

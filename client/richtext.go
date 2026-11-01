@@ -295,10 +295,11 @@ func (g *game) runsWidth(rs []styledRun) int {
 }
 
 type placedGlyph struct {
-	g    glyph
-	x    float32 // pen position, GUI pixels from the start
-	col  [3]float32
-	bold bool
+	g      glyph
+	x      float32 // pen position, GUI pixels from the start
+	col    [3]float32
+	bold   bool
+	italic bool // the top of the glyph leans right and the bottom left, by one GUI pixel each
 }
 
 // drawRuns queues styled text at x, y (framebuffer pixels). alpha scales every colour's opacity.
@@ -320,7 +321,7 @@ func (g *game) drawRuns(rs []styledRun, x, y, scale, alpha float32, shadow bool)
 					}
 				}
 			}
-			placed = append(placed, placedGlyph{gl, pen, r.st.col, r.st.bold})
+			placed = append(placed, placedGlyph{gl, pen, r.st.col, r.st.bold, r.st.italic})
 			pen += gl.adv
 			if r.st.bold {
 				pen++
@@ -348,14 +349,18 @@ func (g *game) drawRuns(rs []styledRun, x, y, scale, alpha float32, shadow bool)
 		colour := func(c [3]float32) [4]float32 { return [4]float32{c[0] * shade, c[1] * shade, c[2] * shade, alpha} }
 		quad := func(p placedGlyph, bx float32) {
 			cx := x + off + (p.x+bx)*scale
+			lean := float32(0)
+			if p.italic {
+				lean = scale // FontRenderer: the top is moved by +1 and the bottom by -1
+			}
 			if p.g.ascii {
 				if p.g.id != ' ' {
-					hd.rect(cx, y+off, 8*scale, 8*scale, float32(int(p.g.id)%16*8), float32(int(p.g.id)/16*8), 8, 8, 128, 128, colour(p.col))
+					hd.rectLean(cx, y+off, 8*scale, 8*scale, float32(int(p.g.id)%16*8), float32(int(p.g.id)/16*8), 8, 8, 128, 128, colour(p.col), lean)
 				}
 				return
 			}
 			uw := float32(p.g.end+1-p.g.start) - 0.02
-			hd.rect(cx, y+off, uw/2*scale, 8*scale, float32(p.g.cell%16*16+p.g.start), float32(p.g.cell/16*16), uw, 16, 256, 256, colour(p.col))
+			hd.rectLean(cx, y+off, uw/2*scale, 8*scale, float32(p.g.cell%16*16+p.g.start), float32(p.g.cell/16*16), uw, 16, 256, 256, colour(p.col), lean)
 		}
 		for _, p := range placed {
 			if p.g.ascii {
