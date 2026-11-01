@@ -8,6 +8,24 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 - [x] Velocidades, sprint y abilities exactos (⚠)
 - [ ] Comparar la traza de movimiento con la de vanilla (sprint, efectos, vuelo)
 
+## PvP
+- [x] Clics tomados al inicio del tick como `Minecraft.runTick`: ataque, uso y selección en ese orden, descartados con
+      un objeto en uso, penalización de 10 ticks tras un clic al aire, mirada desde el tick con la guiñada del tick
+      anterior, y el slot en mano enviado antes del ataque (⚠)
+- [x] Objeto en uso en servidores ajenos: espada, arco, comida, pociones y leche hasta soltar, cambiar de objeto o el
+      estado 9; un toque corto ya no deja la espada levantada en el servidor (⚠)
+- [x] Un arma con Empuje frena al atacante en cada golpe; banderas de ángulo relativo de `0x08` corregidas; los
+      efectos siguen hasta que el servidor los quita (⚠)
+- [x] Modo PvP con tecla y página de opciones: keystrokes, CPS, combo y golpes, alcance, ping, pociones, armadura,
+      toggle sprint y sneak, block-hit de 1.7, sin balanceo de vista; cada parte en su esquina (⚠ sin probar en un
+      servidor real)
+- [x] `pvpreport.py`: golpes dados y recibidos por segundo de pelea, combo, objeto en uso, ataques con la espada
+      levantada, clics retenidos
+- [ ] Comparar un duelo nuevo (`-netlog`) con el anterior (8 golpes dados, 23 recibidos; 31 de 41 golpes propios
+      seguidos de una corrección)
+- [ ] Animación de block-hit de 1.7 en tercera persona; *Mouse Delay Fix* de Patcher (apuntar con la guiñada actual):
+      dejado fuera a propósito, véase el README
+
 ## El mundo en multijugador
 - [x] Items en el suelo y su recogida
 - [x] Mobs con modelo: creeper, esqueleto, araña, zombi, slime, pigman, araña de cueva, murciélago, bruja,

@@ -22,7 +22,7 @@
       "name": "Cliente (interfaz, opciones, sonido)",
       "weight": 15.2,
       "percent": 53,
-      "done": "HUD, chat con estilos, menús, inventario, opciones, sonido, paquetes de recursos (también los del servidor), mundos guardados, editor de carteles",
+      "done": "HUD, chat con estilos, menús, inventario, opciones, sonido, paquetes de recursos (también los del servidor), mundos guardados, editor de carteles, modo PvP (HUD y toggles)",
       "missing": "inventario creativo, libros, estadísticas"
     },
     {

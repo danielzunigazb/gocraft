@@ -21,7 +21,7 @@ pruebas automatizadas que reproducen paquetes contra el cliente, sin servidor re
 6. [Fidelidad con vanilla](#fidelidad-con-vanilla)
 7. [Diagnóstico de sesiones de red](#diagnóstico-de-sesiones-de-red)
 8. [Pruebas](#pruebas)
-9. [Opciones y flags](#opciones-y-flags)
+9. [Opciones y flags](#opciones-y-flags) (y el [modo PvP](#modo-pvp))
 10. [Limitaciones conocidas](#limitaciones-conocidas)
 11. [Aviso legal](#aviso-legal)
 
@@ -63,7 +63,7 @@ las originales. Los paquetes se leen de la carpeta indicada con `-packs` y se ac
 | ![](docs/img/cracks.png)<br>Diez estados de picado | ![](docs/img/bossbar.png)<br>Barra de jefe y *scoreboard* lateral |
 | ![](docs/img/tablist.png)<br>Lista de jugadores con cabecera y pie | ![](docs/img/armorstands.png)<br>Armor stands con pose, armadura y objetos |
 | ![](docs/img/paintings.png)<br>Cuadros de todos los tamaños | ![](docs/img/itemframes.png)<br>Item frames con objetos y bloques |
-| ![](docs/img/heads.png)<br>Cabezas en bloques y en armor stands | |
+| ![](docs/img/heads.png)<br>Cabezas en bloques y en armor stands | ![](docs/img/pvp.png)<br>Modo PvP: teclas, CPS, combo, alcance, ping, pociones y armadura |
 
 ## Progreso de la reimplementación
 
@@ -75,7 +75,7 @@ las originales. Los paquetes se leen de la carpeta indicada con `-packs` y se ac
 |---|--:|--:|---|---|---|
 | Render | 18.3 % | 54 % | `█████░░░░░` | mallado por columnas, luz suave, modelos de bloque, 27 modelos de mobs, partículas, cielo, nombres y carteles, mapas en item frames | renderers de caballo, ocelote, guardián, wither y dragón; champiñones del mooshroom; mapa en la mano |
 | Entidades | 16.6 % | 40 % | `████░░░░░░` | física y movimiento del jugador, jugadores remotos, items, proyectiles, anzuelo, armor stands, cuadros, item frames, cabezas, 23 tipos de mob con IA básica, correas | unos 38 tipos de entidad, la mayoría de las 80 metas de IA, minecarts, monturas y caballos |
-| Cliente (interfaz, opciones, sonido) | 15.2 % | 53 % | `█████░░░░░` | HUD, chat con estilos, menús, inventario, opciones, sonido, paquetes de recursos (también los del servidor), mundos guardados, editor de carteles | inventario creativo, libros, estadísticas |
+| Cliente (interfaz, opciones, sonido) | 15.2 % | 53 % | `█████░░░░░` | HUD, chat con estilos, menús, inventario, opciones, sonido, paquetes de recursos (también los del servidor), mundos guardados, editor de carteles, modo PvP (HUD y toggles) | inventario creativo, libros, estadísticas |
 | Generación de mundo | 13.6 % | 55 % | `██████░░░░` | biomas exactos, terreno al 99.9 %, cuevas, barrancos, nether, end, árboles, minerales, lagos | aldeas, fortalezas, minas, templos, monumentos, botín de mazmorras, mesas de arcilla y árboles gigantes |
 | Bloques y entidades-bloque | 12.2 % | 27 % | `███░░░░░░░` | colisiones, dureza y herramientas, cofres, hornos, carteles, notas, apertura de tapas, cabezas y spawners | flujo de fluidos, cultivos, fuego, redstone, pistones, ticks aleatorios |
 | Servidor integrado y comandos | 8.2 % | 18 % | `██░░░░░░░░` | streaming de chunks, jugadores, combate básico, aparición, guardado del mundo y de los jugadores, comandos básicos | los otros 50 comandos del juego, mobs del lado del servidor, ventanas e inventario del lado del servidor |
@@ -127,8 +127,8 @@ La lógica corre a 20 ticks por segundo; el dibujo, a la tasa de la pantalla. En
 
 1. Se acumula el tiempo del frame (acotado a un tick en multijugador, para no emitir ráfagas de movimiento).
 2. Se aplican los paquetes pendientes (`pumpLight`), tanto al inicio del frame como antes de cada tick.
-3. Se ejecutan los ticks acumulados. Cada tick paga primero el coste local de un golpe pendiente, luego mueve al
-   jugador y, al final, emite los paquetes de movimiento.
+3. Se ejecutan los ticks acumulados. Cada tick toma primero los clics pulsados desde el anterior (ataques, usos) y
+   paga el coste local de un golpe, luego mueve al jugador y, al final, emite los paquetes de movimiento.
 4. Se aplican columnas y bloques con presupuesto (`pumpHeavy`).
 5. Se interpola la posición de la cámara entre el tick anterior y el actual, y se dibuja.
 
@@ -175,9 +175,12 @@ Referencia de dónde se aplica cada regla y qué la verifica.
 | Clics de ventana | `Container.slotClick` modo por modo (0 a 6), rutas de `transferStackInSlot` por ventana, reglas de ranura. El valor devuelto es el item que el paquete lleva. | `winclick.go`, `winkinds.go` |
 | Interfaz de ventanas | Pulsar y soltar con `GuiContainer`: la acción sale al pulsar con la mano vacía y al soltar con un stack; reparto, doble clic en 250 ms, teclas numéricas. | `winui.go` |
 | Interacción con entidades | `interact at`, `interact` y, si la entidad no consume el clic, uso del objeto. | `netuse.go` |
-| Golpe a un jugador | El atacante pierde el sprint y conserva 0.6 de su movimiento (`EntityOtherPlayerMP.attackEntityFrom` devuelve `true`); contra un mob no ocurre. El coste se paga al empezar el siguiente tick, después de aplicar los paquetes del frame. | `pvp.go` |
+| Clics | Se cuentan al pulsar y se aplican al empezar el tick siguiente, como `Minecraft.runTick`: primero los de ataque, luego los de uso y luego el de selección; con un objeto en uso se descartan. Un clic que no da a nada retiene el siguiente ataque mientras el botón siga pulsado (`leftClickCounter`, 10 ticks; lo que quitan los mods de *hit delay*). Se apunta desde los ojos del tick, con la guiñada del tick anterior (`getLook` lee `rotationYawHead`) y el cabeceo actual. El slot en mano sale antes del ataque, del uso y de soltar (`syncCurrentPlayItem`). Orden en el tick: `0x0A`, `0x09`, `0x02`, `0x08`/`0x07`, `0x0B` y el movimiento. | `clicks.go` |
+| Objeto en uso (servidores ajenos) | La espada, el arco con flechas, la comida que se puede comer, las pociones que se beben y la leche quedan en uso al hacer clic (`setItemInUse`); el uso acaba cuando un tick encuentra el botón suelto (sale `0x07` estado 5), cuando otro objeto pasa a la mano (sin paquete, como el servidor) o con el estado 9 del servidor. Mientras dura, movimiento a un quinto y sin sprint. Un toque corto ya no deja al servidor con la espada levantada. | `itemuse.go` |
+| Golpe a un jugador | El atacante pierde el sprint y conserva 0.6 de su movimiento (`EntityOtherPlayerMP.attackEntityFrom` devuelve `true`) cuando el golpe empuja: corriendo, o con un arma con Empuje (Knockback), corra o no; contra un mob no ocurre. El coste se paga justo después de enviar el ataque, al principio del tick. | `pvp.go` |
 | Knockback recibido | Sustituye el movimiento y no modifica `onGround`: la fricción del primer tick es la del suelo. | `pvp.go` |
-| Teletransporte del servidor | Los ejes relativos conservan su movimiento; los absolutos lo anulan; los ángulos relativos se suman. Una corrección menor de dos bloques se absorbe en la cámara en unos 0.1 s sin afectar a la física. | `net.go`, `snap.go` |
+| Teletransporte del servidor | Los ejes relativos conservan su movimiento; los absolutos lo anulan; los ángulos relativos se suman (`0x08` es la guiñada y `0x10` el cabeceo). Una corrección menor de dos bloques se absorbe en la cámara en unos 0.1 s sin afectar a la física. | `net.go`, `snap.go` |
+| Efectos de poción | En un servidor, un efecto que llega a 0 sigue contando hasta que el servidor lo quita (`0x1E`), como en el mundo del cliente de vanilla. | `effects.go` |
 | Tiempos de red | Los paquetes se aplican al inicio de cada frame, como las tareas programadas de vanilla. | `game.go` |
 
 ## Diagnóstico de sesiones de red
@@ -192,18 +195,31 @@ python3 tools/pvpreport.py sesion.net
 
 **`-netlog`** escribe una línea por paquete (milisegundos, dirección, identificador, nombre, tamaño). Decodifica los que
 intervienen en el movimiento y el combate: posiciones en ambos sentidos, teletransportes, velocidad, estados y
-animaciones de entidades, acciones de sprint, uso de entidades, salud y movimientos de entidades. Además intercala
-notas del cliente, con el prefijo `#`:
+animaciones de entidades, acciones de sprint, uso de entidades, uso de objetos y su liberación, ranura en mano,
+efectos de poción, salud y movimientos de entidades. Además intercala notas del cliente, con el prefijo `#`:
 
 - para cada golpe: la distancia del ojo a la caja del rival, el punto donde la mirada la corta, la distancia entre pies
   y cuánto se dibuja el rival por detrás de la posición del servidor;
 - para cada corrección del servidor: origen, destino, distancia, velocidad y estado del jugador, tiempo desde el
   último knockback, y el bloque bajo los pies con su deslizamiento;
+- cada clic retenido por la penalización de fallo y cada ataque descartado con un objeto en uso;
 - cada frame cuyo trabajo supere los 40 ms, con el desglose.
 
-**`tools/pvpreport.py`** resume el registro: frecuencia de correcciones y su relación con golpes y knockbacks, ataques
-aceptados y motivo de los rechazados (inmunidad del rival frente a alcance), golpes que no salieron teniendo al rival
-al alcance de la mirada, y el retraso de dibujo de los rivales.
+**`tools/pvpreport.py`** resume el registro:
+
+- golpes dados (ataques a los que el servidor responde con el rival herido) y recibidos: en total, por minuto y por
+  segundo de pelea (tramos con golpes a menos de 5 s), pelea por pelea, el combo más largo, y clics frente a ataques
+  frente a golpes dados;
+- el objeto en uso: usos en el aire por objeto, liberaciones, usos que nunca se soltaron (el servidor siguió con la
+  espada levantada) y ataques enviados con un objeto en uso (lo que un anticheat llama *autoblock*);
+- frecuencia de correcciones del servidor y qué las precede (un golpe propio, un knockback, un objeto en uso);
+- ataques aceptados y motivo de los rechazados (inmunidad del rival frente a alcance), golpes que no salieron teniendo
+  al rival al alcance de la mirada, y el retraso de dibujo de los rivales;
+- clics retenidos o descartados por el propio cliente.
+
+Para evaluar un duelo: jugarlo con `-netlog` a un fichero nuevo (se sobrescribe), y pasar el fichero a la herramienta.
+Las cifras que importan son los golpes dados y recibidos por segundo de pelea, las correcciones tras un golpe propio
+(deberían ser pocas) y las dos líneas marcadas con `!!` del objeto en uso, que con este cliente deben ser 0.
 
 ## Pruebas
 
@@ -211,7 +227,7 @@ al alcance de la mirada, y el retraso de dibujo de los rivales.
 go vet ./... && go test ./...
 ```
 
-Hay 455 pruebas. Las del cliente necesitan el `client.jar` y se omiten si falta.
+Hay 515 pruebas. Las del cliente necesitan el `client.jar` y se omiten si falta.
 
 - **Sin servidor real.** Los paquetes se reproducen contra el cliente con `decodeFrame`; los envíos se inspeccionan con
   `drain` y `readClicks`. Los juegos de prueba (`testGame`, `windowGame`, `mobGame`) construyen un estado mínimo.
@@ -252,6 +268,36 @@ distintas, para que el servidor tenga que generar columnas nuevas, y cuenta colu
 primera.
 
 `./gocraft -h` lista todos. Se lee `options.txt` en el formato de vanilla; `ao:0` desactiva la iluminación suave.
+
+### Modo PvP
+
+Un interruptor que activa un conjunto de ayudas del tipo de las de Lunar Client o Badlion, limitado a lo que solo
+muestra información o ahorra mantener una tecla. Se activa y desactiva con su tecla (`P` por defecto, cambiable en
+*Controls*) o en *Options > PvP Mode...*, y se guarda en `options.txt` (`pvpMode`, `pvp_<parte>`,
+`pvpCorner_<parte>`, `pvpToggleSprint`, `pvpToggleSneak`, `pvpBlockHit`, `pvpNoBob`, `key_key.pvpMode`). Con él
+activo:
+
+| Parte | Qué hace |
+|---|---|
+| Keystrokes | W, A, S, D, los dos botones (con sus clics por segundo) y la barra espaciadora, iluminados mientras se pulsan. |
+| CPS | Clics por segundo de cada botón; dentro de *Keystrokes* o en una línea propia. |
+| Combo | Golpes seguidos que dio el jugador sin recibir uno (se corta tras un golpe recibido o 3 s sin dar), y golpes dados y recibidos desde la entrada o la última reaparición. Un golpe cuenta como dado cuando el servidor muestra herido a ese rival en el segundo siguiente al ataque. |
+| Reach Display | Distancia desde los ojos hasta el punto donde la mirada corta la caja del rival en el último ataque enviado. Solo informativa. |
+| Ping | La latencia que la lista de jugadores del servidor (`0x38`) da al propio jugador. |
+| Potion Status | Efectos con su icono del inventario, nivel y tiempo restante (`**:**` para uno de duración máxima). |
+| Armor Status | Casco, peto, grebas, botas y el objeto en mano si se desgasta, con la durabilidad que les queda en verde, amarillo o rojo. |
+| Toggle Sprint / Toggle Sneak | La tecla de correr o agacharse se queda pulsada al tocarla y se suelta al tocarla otra vez. El juego la lee como pulsada, así que el servidor recibe paquete a paquete lo mismo que con la tecla mantenida. Desactivados por defecto. |
+| 1.7 Block-hit | Con la espada levantada sigue dibujándose el golpe que vino justo antes, como en 1.7. Solo la mano en primera persona. |
+| No View Bobbing | Sin balanceo de la vista mientras el modo está activo, sin tocar la opción propia. |
+
+Cada parte se activa por separado y se coloca en una esquina (*HUD Positions...*); las de una misma esquina se apilan
+en orden fijo. El modo no cambia la física, los paquetes ni lo que se ve del mundo: no hay autoclicker, alcance o
+cajas ampliadas, ayuda de puntería, *fullbright*, rayos X, eliminación del retraso de golpe tras un fallo ni cambio del
+identificador anunciado. Los clics siguen las reglas de 1.8 descritas en [Fidelidad con vanilla](#fidelidad-con-vanilla).
+
+Dejado fuera por ambiguo: el *Mouse Delay Fix* de Patcher (apuntar con la guiñada del momento en lugar de la del tick
+anterior, que es la que el servidor conoce), quitar la sacudida de cámara al recibir un golpe, el golpe visible al usar
+un objeto (*punching during usage*) y el block-hit de 1.7 en tercera persona.
 Variables de entorno: `GOCRAFT_BRAND` (identificador anunciado al servidor; por defecto `gocraft`),
 `GOCRAFT_MSA_CLIENT_ID` (véase `ACCOUNT.md`), `GOCRAFT_NO_AUDIO`, `GOCRAFT_PREVIEW`.
 
@@ -261,7 +307,7 @@ Variables de entorno: `GOCRAFT_BRAND` (identificador anunciado al servidor; por 
 xvfb-run -a ./gocraft -demo -screen netmobs -look 0,18 -screenshot /tmp/mobs.png
 ```
 
-Escenas: `netmobs`, `netstands`, `netpaintings`, `netframes`, `netheads`, `netgear`, `netsnow`, `netleash`, `netsignedit`, `netpack`, `networms`, `netenchant`, `netanvil`, `netbrewing`, `netlightning`, `netfish`, `netparticles`, `netitems`, `netboss`, `netborder`, `netlist`, `netchat`, `signs`,
+Escenas: `netpvp`, `pvpoptions`, `netmobs`, `netstands`, `netpaintings`, `netframes`, `netheads`, `netgear`, `netsnow`, `netleash`, `netsignedit`, `netpack`, `networms`, `netenchant`, `netanvil`, `netbrewing`, `netlightning`, `netfish`, `netparticles`, `netitems`, `netboss`, `netborder`, `netlist`, `netchat`, `signs`,
 `cracks`, `drag`, `survival`, `inventory`, `title`. Las `net*` requieren `-demo`.
 
 ## Limitaciones conocidas
@@ -274,7 +320,8 @@ Escenas: `netmobs`, `netstands`, `netpaintings`, `netframes`, `netheads`, `netge
 - Las capturas se tomaron con un paquete de recursos cuyas texturas de interfaz tienen los paneles transparentes (alfa 0
   en el relleno gris), así que las ventanas se ven sin ese relleno. Con las texturas del jar, el relleno es opaco.
 - El comportamiento en servidores con anticheat basado en predicción de movimiento sigue en revisión; el registro de
-  red (`-netlog`) está pensado para ese análisis.
+  red (`-netlog`) está pensado para ese análisis. Los cambios de los clics, el objeto en uso y el modo PvP están
+  probados contra el cliente con paquetes reproducidos, no en un servidor real.
 
 El estado detallado está en [ROADMAP.md](ROADMAP.md).
 
