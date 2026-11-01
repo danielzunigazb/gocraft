@@ -61,5 +61,9 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 ## Calidad
 - [x] README y ROADMAP
 - [ ] Pruebas que reproduzcan una captura de vanilla contra el cliente
-- [ ] Pasada de rendimiento con el profiler
+- [x] Pasada de rendimiento con el profiler, por el lado de la CPU (2026-11-01, `-bench` con `-cpuprofile` bajo xvfb):
+      el 79 % es el rasterizador por software de Mesa; del código de Go solo destaca el mallado (~6 ms por columna en un
+      trabajador, 12 %), el *streaming* cuesta 0.04 ms por frame y el resto no pasa de 1 %. No hay cuello de botella que
+      arreglar en la CPU
+- [ ] Pasada de rendimiento en una GPU real (`tools/bench.sh` en tu pantalla: aquí no hay GPU)
 - [x] Build distribuible: `make release` (el juego enlaza GLFW por cgo, así que se compila en la plataforma de destino)
