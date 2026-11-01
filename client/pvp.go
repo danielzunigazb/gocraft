@@ -155,6 +155,11 @@ func (g *game) sendActions() {
 func (g *game) netVelocity(vx, vy, vz int16) {
 	if g.net != nil {
 		g.net.lastKnock = g.ticks
+		if proto.Note != nil {
+			under := g.blockUnderFeet()
+			proto.Note(fmt.Sprintf("knockback %.3f %.3f %.3f taken at the frame: motion was %.3f %.3f %.3f ground=%v sprint=%v, under the feet block %d slipperiness %.2f",
+				float64(vx)/8000, float64(vy)/8000, float64(vz)/8000, g.vel[0], g.vel[1], g.vel[2], g.onGround, g.sprinting, under, slipperiness(under)))
+		}
 	}
 	g.vel = vec3{float64(vx) / 8000, float64(vy) / 8000, float64(vz) / 8000}
 }
@@ -223,9 +228,10 @@ func (g *game) logCorrection(to vec3, flags byte) {
 	d := to.sub(g.feet)
 	since := g.ticks - n.lastCorrection
 	n.lastCorrection = g.ticks
-	text := fmt.Sprintf("server moved the player: from %.3f %.3f %.3f to %.3f %.3f %.3f (%.3f away, flags %#x); %d ticks since the last; velocity %.3f %.3f %.3f ground=%v sprint=%v sneak=%v flying=%v hurt=%d knock %d ticks ago",
+	under := g.blockUnderFeet()
+	text := fmt.Sprintf("server moved the player: from %.3f %.3f %.3f to %.3f %.3f %.3f (%.3f away, flags %#x); %d ticks since the last; velocity %.3f %.3f %.3f ground=%v sprint=%v sneak=%v flying=%v hurt=%d knock %d ticks ago; under the feet block %d slipperiness %.2f",
 		g.feet[0], g.feet[1], g.feet[2], to[0], to[1], to[2], math.Sqrt(d.dot(d)), flags, since, g.vel[0], g.vel[1], g.vel[2],
-		g.onGround, g.sprinting, g.sneaking, g.flying, g.hurtTime, g.ticks-n.lastKnock)
+		g.onGround, g.sprinting, g.sneaking, g.flying, g.hurtTime, g.ticks-n.lastKnock, under, slipperiness(under))
 	logf("%s", text)
 	if proto.Note != nil {
 		proto.Note(text)

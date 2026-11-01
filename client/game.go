@@ -18,6 +18,7 @@ import (
 	"github.com/go-gl/glfw/v3.3/glfw"
 
 	"gocraft/anvil"
+	"gocraft/proto"
 	"gocraft/world"
 )
 
@@ -100,6 +101,7 @@ type game struct {
 	cursor                     slot
 	cursorX                    itemExtra // the tag of the stack on the mouse in the player's own window on a server
 	wui                        winUI     // what the mouse is doing in a window with slots
+	snap                       vec3      // how far the view still is from where the server last put the player (snap.go)
 	fovMod, fovModPrev         float32   // the field of view's modifier now and a tick ago (fov.go)
 	fovSet                     bool
 	health                     float32
@@ -865,7 +867,10 @@ func (g *game) loop() error {
 				break
 			}
 		}
+		tickStart := glfw.GetTime()
+		ticksRun := 0
 		for acc >= 1.0/tickRate {
+			ticksRun++
 			g.pumpLight()                                                                    // the game takes in what the server sent just before the tick that moves things on
 			if g.inGame && (!g.screen.isMenu() || g.net != nil && g.screen == screenPause) { // a menu pauses the game, as in single player; a server's does not wait
 				g.tick(g.input())
@@ -879,11 +884,15 @@ func (g *game) loop() error {
 		if g.net != nil && time.Since(g.net.pumped) > 100*time.Millisecond { // no tick is running (a menu): do not let packets pile up
 			g.pumpLight()
 		}
+		tickMs := float32(glfw.GetTime()-tickStart) * 1000
+		heavyStart := glfw.GetTime()
 		g.pumpHeavy(4 * time.Millisecond)
+		heavyMs := float32(glfw.GetTime()-heavyStart) * 1000
 		a := float32(acc * tickRate)
 		g.partial = a
 		if g.inGame {
 			g.pos = g.prevFeet.add(g.feet.sub(g.prevFeet).scale(float64(a))).add(vec3{0, float64(g.eyeOffset()), 0})
+			g.pos = g.pos.add(g.easeSnap(frame))
 		}
 		rc = renderCounters{}
 		t0 := glfw.GetTime()
@@ -893,6 +902,9 @@ func (g *game) loop() error {
 		t1 := glfw.GetTime()
 		g.draw()
 		g.frames.updateMs, g.frames.drawMs = float32(t1-t0)*1000, float32(glfw.GetTime()-t1)*1000
+		if work := tickMs + heavyMs + g.frames.updateMs + g.frames.drawMs; work > 40 && proto.Note != nil { // a frame that took long to make
+			proto.Note(fmt.Sprintf("hitch: the frame's work took %.0f ms (%d ticks %.1f, packets %.1f, meshes %.1f, drawing %.1f)", work, ticksRun, tickMs, heavyMs, g.frames.updateMs, g.frames.drawMs))
+		}
 		g.win.SwapBuffers()
 		glfw.PollEvents()
 	}

@@ -705,6 +705,7 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 			rel(1, &x, p[0], 0)
 			rel(2, &y, p[1], 1)
 			rel(4, &z, p[2], 2)
+			g.snapView(p, vec3{x, y, z})
 			g.feet = vec3{x, y, z}
 			g.prevFeet = g.feet
 			if flags&8 != 0 { // the angles are relative too: added to where the player looks
