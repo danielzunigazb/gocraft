@@ -6,6 +6,21 @@ import (
 	"gocraft/proto"
 )
 
+// traceLine is a packet's line in the -netlog file: milliseconds since the start, direction, id, name, size, and what
+// it says when it is one that is decoded. tools/pvpreport.py reads these lines.
+func traceLine(ms int64, dir string, id int32, payload []byte) string {
+	text := ""
+	if dir == "<" && (id == 0x02 || id == 0x40 || id == 0x45 || id == 0x3F) || dir == ">" && (id == 0x01 || id == 0x17) {
+		text = " " + printable(payload)
+	} else if d := decodeTrace(dir, id, payload); d != "" {
+		text = " " + d
+	}
+	return fmt.Sprintf("%6dms %s 0x%02x %-22s %d bytes%s\n", ms, dir, id, packetName(dir, id), len(payload), text)
+}
+
+// noteLine is one of the client's own notes in the -netlog file.
+func noteLine(ms int64, text string) string { return fmt.Sprintf("%6dms # %s\n", ms, text) }
+
 // decodeTrace says what is in the packets that matter when the server and the client disagree about where the
 // player is or how they move: positions both ways, knockback, blows, sprint and sneak, and health.
 func decodeTrace(dir string, id int32, payload []byte) string {
@@ -43,6 +58,27 @@ func decodeTrace(dir string, id int32, payload []byte) string {
 	case dir == ">" && id == 0x02:
 		eid := r.VarInt()
 		s = fmt.Sprintf("entity %d use type %d", eid, r.VarInt())
+	case dir == ">" && id == 0x07: // digging; status 5 lets go of the item in use
+		st := r.Byte()
+		x, y, z := proto.UnpackPos(r.Long())
+		s = fmt.Sprintf("dig status %d at %d %d %d face %d", st, x, y, z, r.Byte())
+	case dir == ">" && id == 0x08: // a click on a block, or the item used in the air (position -1)
+		pos, face := r.Long(), r.Byte()
+		item := int16(r.UShort())
+		if pos == -1 {
+			s = fmt.Sprintf("use item %d in the air", item)
+		} else {
+			x, y, z := proto.UnpackPos(pos)
+			s = fmt.Sprintf("click block %d %d %d face %d holding %d", x, y, z, face, item)
+		}
+	case dir == ">" && id == 0x09:
+		s = fmt.Sprintf("held slot %d", r.UShort())
+	case dir == "<" && id == 0x1d:
+		eid := r.VarInt()
+		s = fmt.Sprintf("entity %d effect %d amplifier %d for %d ticks", eid, r.Byte(), r.Byte(), r.VarInt())
+	case dir == "<" && id == 0x1e:
+		eid := r.VarInt()
+		s = fmt.Sprintf("entity %d effect %d removed", eid, r.Byte())
 	case dir == "<" && id == 0x15: // an entity moves by a few 32ths of a block
 		eid := r.VarInt()
 		s = fmt.Sprintf("entity %d move %+.3f %+.3f %+.3f", eid, float64(int8(r.Byte()))/32, float64(int8(r.Byte()))/32, float64(int8(r.Byte()))/32)

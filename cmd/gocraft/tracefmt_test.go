@@ -40,6 +40,24 @@ func TestDecodeTrace(t *testing.T) {
 	if got := decodeTrace("<", 0x12, v.B[1:]); !strings.Contains(got, "entity 7 velocity 0.400 0.360 -0.100") {
 		t.Fatalf("velocity: %q", got)
 	}
+	u := proto.NewPacket(0x08)
+	u.Long(proto.PackPos(-1, -1, -1))
+	u.Byte(255)
+	u.UShort(276)
+	u.Byte(1)
+	u.Byte(0)
+	u.Byte(0)
+	u.Byte(0)
+	if got := decodeTrace(">", 0x08, u.B[1:]); !strings.Contains(got, "use item 276 in the air") {
+		t.Fatalf("use: %q", got)
+	}
+	d := proto.NewPacket(0x07)
+	d.Byte(5)
+	d.Long(0)
+	d.Byte(0)
+	if got := decodeTrace(">", 0x07, d.B[1:]); !strings.Contains(got, "dig status 5 at 0 0 0") {
+		t.Fatalf("release: %q", got)
+	}
 	if got := decodeTrace("<", 0x08, payload[:5]); got != "" {
 		t.Fatalf("a truncated packet decoded as %q", got)
 	}

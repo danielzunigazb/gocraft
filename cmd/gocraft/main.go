@@ -75,18 +75,12 @@ func main() {
 		proto.Note = func(text string) {
 			mu.Lock()
 			defer mu.Unlock()
-			fmt.Fprintf(f, "%6dms # %s\n", time.Since(t0).Milliseconds(), text)
+			fmt.Fprint(f, noteLine(time.Since(t0).Milliseconds(), text))
 		}
 		proto.Trace = func(dir string, id int32, payload []byte) {
 			mu.Lock()
 			defer mu.Unlock()
-			text := ""
-			if dir == "<" && (id == 0x02 || id == 0x40 || id == 0x45 || id == 0x3F) || dir == ">" && (id == 0x01 || id == 0x17) {
-				text = " " + printable(payload)
-			} else if d := decodeTrace(dir, id, payload); d != "" {
-				text = " " + d
-			}
-			fmt.Fprintf(f, "%6dms %s 0x%02x %-22s %d bytes%s\n", time.Since(t0).Milliseconds(), dir, id, packetName(dir, id), len(payload), text)
+			fmt.Fprint(f, traceLine(time.Since(t0).Milliseconds(), dir, id, payload))
 		}
 	}
 	if err := client.Run(client.Options{JarPath: *jar, ViewDistance: *view, Screenshot: *shot, Frames: *frames, Demo: *demo, WorldDir: *dir, Pos: *pos, Look: *look, Script: *script, Screen: *screen, SavesDir: *saves, OptionsFile: *optionsFile, PacksDir: *packs, Time: *timeOfDay, Mobs: *mobs, Hand: *hand, Connect: *connect, Dim: *dim, Portal: *portal, Name: *name, Perspective: *persp, Hold: *hold, Bench: *bench, BenchWarm: *benchWarm, Width: *width, Height: *height}); err != nil {
