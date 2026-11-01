@@ -696,3 +696,37 @@ func TestFlightToggleSendsAbilitiesAsTheGame(t *testing.T) {
 		t.Fatalf("survival again: flying %v canFly %v flags %d", g.flying, g.canFly(), g.abilFlags)
 	}
 }
+
+// Held Item Change moves the hand to the slot the server picks, and the client answers with the same slot,
+// as the game's syncCurrentPlayItem does; a slot outside the hotbar is ignored.
+func TestServerPicksTheHeldSlot(t *testing.T) {
+	g, c := windowGame(t)
+	g.net.received[world.ChunkPos{X: 0, Z: 0}] = true
+	decodeFrame(t, joinGame(5, 0, 0), nil)(g)
+	g.tick(input{})
+	for len(c.out) > 0 {
+		<-c.out
+	}
+	w := newPacket(0x09)
+	w.Byte(4)
+	decodeFrame(t, w, nil)(g)
+	if g.sel != 4 {
+		t.Fatalf("held slot %d, want 4", g.sel)
+	}
+	g.tick(input{})
+	got := -1
+	for len(c.out) > 0 {
+		id, r, err := proto.ReadPacket(bufio.NewReader(bytes.NewReader(<-c.out)))
+		if err == nil && id == 0x09 {
+			got = int(r.Short())
+		}
+	}
+	if got != 4 {
+		t.Fatalf("the client answered slot %d, want 4", got)
+	}
+	w = newPacket(0x09)
+	w.Byte(9)
+	if f := decodeFrame(t, w, nil); f != nil {
+		t.Fatal("slot 9 is not in the hotbar and should be ignored")
+	}
+}

@@ -836,6 +836,12 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 				e.mob.m.hurtTime = 10 // performHurtAnimation
 			}
 		}
+	case 0x09: // held item change: the server picks the hotbar slot (a minigame handing out its kit)
+		slot := int(int8(r.Byte()))
+		if r.Err() != nil || slot < 0 || slot > 8 {
+			return nil
+		}
+		return func(g *game) { g.sel = slot } // the next tick tells the server back, as syncCurrentPlayItem does
 	case 0x33: // update sign: its four lines
 		x, y, z := proto.UnpackPos(r.Long())
 		var lines [4]string
