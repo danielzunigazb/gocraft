@@ -455,6 +455,36 @@ func (w *clickWin) doubleClick(i, button int) {
 	}
 }
 
+// dragShares is what painting a stack over slots gives them, in the way mode says (0 evenly, 1 one each, 2 fill
+// to the limit): how many each slot ends up holding (-1 for a slot that takes nothing of it) and how many stay
+// on the mouse. It is the arithmetic of Container.computeStackSize, for the drop and for the preview.
+func (w *clickWin) dragShares(slots []int, mode int) (counts []int, left int) {
+	cur := w.cursor
+	left = int(cur.N)
+	counts = make([]int, len(slots))
+	for k, i := range slots {
+		counts[k] = -1
+		if !w.canAdd(i, cur, true) || !w.valid(i, cur) || int(cur.N) < len(slots) {
+			continue
+		}
+		have := 0
+		if !w.slots[i].empty() {
+			have = int(w.slots[i].N)
+		}
+		give := 1
+		switch mode {
+		case 0:
+			give = int(cur.N) / len(slots)
+		case 2:
+			give = cur.wmax()
+		}
+		give = min(give+have, cur.wmax(), w.limit(i, cur))
+		left -= give - have
+		counts[k] = give
+	}
+	return counts, left
+}
+
 // dragClick is the paint-to-spread click (mode 5): button says the step (start, a slot, end) in its low two
 // bits and the way (left spreads evenly, right one each, middle fills) above them.
 func (w *clickWin) dragClick(slotID, button int) {
@@ -484,25 +514,11 @@ func (w *clickWin) dragClick(slotID, button int) {
 	case w.dragEvent == 2:
 		if len(w.dragSlots) > 0 {
 			cur := w.cursor
-			left := int(cur.N)
-			for _, i := range w.dragSlots {
-				if !w.canAdd(i, cur, true) || !w.valid(i, cur) || int(cur.N) < len(w.dragSlots) {
-					continue
+			counts, left := w.dragShares(w.dragSlots, w.dragMode)
+			for k, i := range w.dragSlots {
+				if counts[k] >= 0 {
+					w.slots[i] = cur.with(counts[k])
 				}
-				have := 0
-				if !w.slots[i].empty() {
-					have = int(w.slots[i].N)
-				}
-				give := 1
-				switch w.dragMode {
-				case 0:
-					give = int(cur.N) / len(w.dragSlots)
-				case 2:
-					give = cur.wmax()
-				}
-				give = min(give+have, cur.wmax(), w.limit(i, cur))
-				left -= give - have
-				w.slots[i] = cur.with(give)
 			}
 			w.cursor = cur.with(left)
 		}

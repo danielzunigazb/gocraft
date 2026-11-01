@@ -2,7 +2,6 @@ package client
 
 import (
 	"github.com/go-gl/gl/v3.3-core/gl"
-	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
 const (
@@ -28,24 +27,6 @@ func (g *game) slotUnderMouse() (placedSlot, bool) {
 	return placedSlot{}, false
 }
 
-func (g *game) clickContainer(right bool) {
-	shift := g.win != nil && g.win.GetKey(glfw.KeyLeftShift) == glfw.Press
-	if ps, ok := g.slotUnderMouse(); ok {
-		g.clickSlot(ps.ref, right, shift)
-		return
-	}
-	// A click outside the window throws what the mouse holds.
-	s, left, top := g.contPanel()
-	mx, my := g.mouse()
-	if x, y := (mx-left)/s, (my-top)/s; x < 0 || y < 0 || x >= contW || y >= float32(g.contHeight()) {
-		button := 0
-		if right {
-			button = 1
-		}
-		g.windowClick(g.localMap(), -999, button, 0)
-	}
-}
-
 func (g *game) drawContainer(w, h int) {
 	hd := &g.hud
 	s, left, top := g.contPanel()
@@ -69,13 +50,25 @@ func (g *game) drawContainer(w, h int) {
 	}
 
 	slots := g.containerSlots()
+	lm := g.localMap()
+	prev, remnant, painting := g.dragPreview(lm) // a stack painted across slots shows what each would hold
+	shown := func(ps placedSlot) slot {
+		if c, ok := prev[lm.indexOf(ps.ref.p)]; painting && ok {
+			return slot{g.cursor.ID, g.cursor.Dmg, int8(c)}
+		}
+		return *ps.ref.p
+	}
 	for _, ps := range slots {
-		g.drawSlotIcon(*ps.ref.p, left+float32(ps.x)*s, top+float32(ps.y)*s, 16*s)
+		g.drawSlotIcon(shown(ps), left+float32(ps.x)*s, top+float32(ps.y)*s, 16*s)
 	}
 	hd.flush(g.tex)
 	hd.flushItems()
 	for _, ps := range slots {
-		g.drawCount(int(ps.ref.p.N), left+float32(ps.x)*s, top+float32(ps.y)*s, s)
+		g.drawCount(int(shown(ps).N), left+float32(ps.x)*s, top+float32(ps.y)*s, s)
+		if _, ok := prev[lm.indexOf(ps.ref.p)]; painting && ok {
+			hd.rect(left+float32(ps.x)*s, top+float32(ps.y)*s, 16*s, 16*s, 0, 0, 1, 1, 1, 1, [4]float32{1, 1, 1, 0.5})
+			hd.flush(hd.white)
+		}
 	}
 	if g.cont.kind == contPlayer { // the player, turned to the mouse
 		g.drawPlayerPreview(left, top, s)
@@ -93,7 +86,11 @@ func (g *game) drawContainer(w, h int) {
 		g.drawSlotIcon(g.cursor, mx-8*s, my-8*s, 16*s)
 		hd.flush(g.tex)
 		hd.flushItems()
-		g.drawCount(int(g.cursor.N), mx-8*s, my-8*s, s)
+		n := int(g.cursor.N)
+		if painting {
+			n = remnant
+		}
+		g.drawCount(n, mx-8*s, my-8*s, s)
 	}
 	gl.Disable(gl.BLEND)
 }

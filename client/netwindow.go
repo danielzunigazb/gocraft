@@ -1,8 +1,6 @@
 package client
 
 import (
-	"github.com/go-gl/glfw/v3.3/glfw"
-
 	"gocraft/proto"
 )
 
@@ -29,7 +27,8 @@ type serverWindow struct {
 	extra   []itemExtra
 	cursor  slot
 	cursorX itemExtra
-	action  int16 // the number of the next click, which the server confirms by
+	action  int16     // the transaction number of the last click, which a server that refuses it answers with
+	win     *clickWin // the click engine of the window, kept while it is open: a drag lives across several clicks
 }
 
 // readSlotX reads an item stack with its tag: the display name and lore are kept, the rest is skipped.
@@ -122,6 +121,7 @@ func (g *game) openServerWindow(id int8, kind, titleJSON string, n int) {
 		g.closeContainer()
 	}
 	title := parseChatBase(titleJSON, textStyle{col: [3]float32{0.25, 0.25, 0.25}})
+	g.wui = winUI{}
 	g.swin = &serverWindow{id: id, kind: kind, title: title, n: n, slots: make([]slot, n), extra: make([]itemExtra, n)}
 	g.openScreen(screenServerWin)
 	g.cx, g.cy = float64(g.fb[0])/2, float64(g.fb[1])/2
@@ -269,15 +269,25 @@ func (g *game) drawServerWindow(w, h int) {
 	}
 	g.drawRuns(win.title, left+8*s, top+6*s, s, 1, false)
 	g.text("Inventory", left+8*s, top+float32(invLabel)*s, s, [4]float32{0.25, 0.25, 0.25, 1}, false)
+	prev, remnant, painting := g.dragPreview(g.serverMap()) // a stack painted across slots shows what each would hold
+	shown := func(i int) slot {
+		if c, ok := prev[i]; painting && ok {
+			return slot{win.cursor.ID, win.cursor.Dmg, int8(c)}
+		}
+		it, _ := g.windowItem(i)
+		return it
+	}
 	for _, sl := range slots {
-		it, _ := g.windowItem(sl.idx)
-		g.drawSlotIcon(it, left+float32(sl.x)*s, top+float32(sl.y)*s, 16*s)
+		g.drawSlotIcon(shown(sl.idx), left+float32(sl.x)*s, top+float32(sl.y)*s, 16*s)
 	}
 	hd.flush(g.tex)
 	hd.flushItems()
 	for _, sl := range slots {
-		it, _ := g.windowItem(sl.idx)
-		g.drawCount(int(it.N), left+float32(sl.x)*s, top+float32(sl.y)*s, s)
+		g.drawCount(int(shown(sl.idx).N), left+float32(sl.x)*s, top+float32(sl.y)*s, s)
+		if _, ok := prev[sl.idx]; painting && ok {
+			hd.rect(left+float32(sl.x)*s, top+float32(sl.y)*s, 16*s, 16*s, 0, 0, 1, 1, 1, 1, [4]float32{1, 1, 1, 0.5})
+			hd.flush(hd.white)
+		}
 	}
 	mx, my := g.mouse()
 	if sl, ok := g.windowSlotAt(mx, my, left, top, s, slots); ok {
@@ -291,7 +301,11 @@ func (g *game) drawServerWindow(w, h int) {
 		g.drawSlotIcon(win.cursor, mx-8*s, my-8*s, 16*s)
 		hd.flush(g.tex)
 		hd.flushItems()
-		g.drawCount(int(win.cursor.N), mx-8*s, my-8*s, s)
+		n := int(win.cursor.N)
+		if painting {
+			n = remnant
+		}
+		g.drawCount(n, mx-8*s, my-8*s, s)
 	}
 }
 
@@ -335,33 +349,6 @@ func (g *game) drawItemTooltip(it slot, ex itemExtra, mx, my, s float32) {
 
 // ---- clicks ----
 
-// clickServerWindow sends a click on the slot under the mouse, as the game does: left and right pick
-// up or put down, shift moves the stack across. What happens is the server's to say.
-func (g *game) clickServerWindow(right bool) {
-	win := g.swin
-	if win == nil || g.net == nil {
-		return
-	}
-	slots, ph := win.layout()
-	s, left, top := g.windowPanel(ph)
-	mx, my := g.mouse()
-	shift := g.shiftDown()
-	if sl, ok := g.windowSlotAt(mx, my, left, top, s, slots); ok {
-		mode, button := byte(0), byte(0)
-		if right {
-			button = 1
-		}
-		if shift {
-			mode = 1
-		}
-		g.sendWindowClick(sl.idx, button, mode)
-		return
-	}
-	if x, y := (mx-left)/s, (my-top)/s; x < 0 || y < 0 || x >= contW || y >= float32(ph) {
-		g.sendWindowClick(-999, map[bool]byte{false: 0, true: 1}[right], 0) // outside: throw what the mouse holds
-	}
-}
-
 func (g *game) sendWindowClick(idx int, button, mode byte) {
 	g.windowClick(g.serverMap(), idx, int(button), int(mode))
 }
@@ -381,5 +368,3 @@ func putSlotWire(p *proto.Writer, s slot, ex itemExtra) {
 		p.Byte(0)
 	}
 }
-
-func (g *game) shiftDown() bool { return g.win != nil && g.win.GetKey(glfw.KeyLeftShift) == glfw.Press }

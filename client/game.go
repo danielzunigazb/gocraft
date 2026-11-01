@@ -99,6 +99,7 @@ type game struct {
 	armor                      [4]slot
 	cursor                     slot
 	cursorX                    itemExtra // the tag of the stack on the mouse in the player's own window on a server
+	wui                        winUI     // what the mouse is doing in a window with slots
 	health                     float32
 	food, regen                int
 	fall                       float32
@@ -414,6 +415,9 @@ func (g *game) changeBlock(x, y, z int32, state uint16, fx bool) {
 
 func (g *game) onCursor(_ *glfw.Window, x, y float64) {
 	g.cx, g.cy = x, y
+	if g.inWindow() {
+		g.winMove()
+	}
 	if g.screen != screenNone {
 		return
 	}
@@ -510,6 +514,11 @@ func (g *game) onKey(w *glfw.Window, key glfw.Key, _ int, action glfw.Action, _ 
 		}
 		return
 	}
+	if g.inWindow() { // over a slot the number keys swap with the hotbar, Q drops, the pick key clones
+		if g.winKey(key) || key >= glfw.Key1 && key <= glfw.Key9 { // a number key never changes the held slot here
+			return
+		}
+	}
 	if code, ok := lwjglOf[key]; ok && code == g.opts.Keys["togglePerspective"] && g.screen == screenNone {
 		g.perspective = (g.perspective + 1) % 3
 	}
@@ -549,6 +558,12 @@ func (g *game) onScroll(_ *glfw.Window, _, dy float64) {
 }
 
 func (g *game) onMouse(_ *glfw.Window, b glfw.MouseButton, action glfw.Action, _ glfw.ModifierKey) {
+	if g.inWindow() && g.rebinding == "" { // a window with slots takes the button going down and going up
+		if action == glfw.Press || action == glfw.Release {
+			g.winMouse(b, action == glfw.Press)
+		}
+		return
+	}
 	if action != glfw.Press {
 		return
 	}
@@ -564,18 +579,6 @@ func (g *game) onMouse(_ *glfw.Window, b glfw.MouseButton, action glfw.Action, _
 	if g.screen == screenInventory {
 		if b == glfw.MouseButtonLeft {
 			g.clickInventory()
-		}
-		return
-	}
-	if g.screen == screenContainer {
-		if b == glfw.MouseButtonLeft || b == glfw.MouseButtonRight {
-			g.clickContainer(b == glfw.MouseButtonRight)
-		}
-		return
-	}
-	if g.screen == screenServerWin {
-		if b == glfw.MouseButtonLeft || b == glfw.MouseButtonRight {
-			g.clickServerWindow(b == glfw.MouseButtonRight)
 		}
 		return
 	}
@@ -772,6 +775,16 @@ func (g *game) loop() error {
 			}
 			g.screen, g.cx, g.cy = screenContainer, 640, 360
 			g.cursor = slot{ID: 265, N: 7}
+		}
+		if g.opt.Screen == "drag" { // a stack of 40 painted across four slots, one of them already holding some
+			g.fb = [2]int{g.opt.Width, g.opt.Height}
+			g.creative = false
+			g.inv[0], g.inv[1], g.inv[2] = slot{ID: 276, N: 1}, slot{ID: 264, N: 7}, slot{ID: 4, N: 3}
+			g.inv[10] = slot{ID: 4, N: 5}
+			g.openContainer(contPlayer)
+			g.cursor = slot{ID: 4, N: 40}
+			g.wui.dragging, g.wui.dragSlots = true, []int{10, 11, 12, 13}
+			g.screen, g.cx, g.cy = screenContainer, 700, 330
 		}
 		if g.opt.Screen == "inventory" {
 			g.fb = [2]int{g.opt.Width, g.opt.Height}

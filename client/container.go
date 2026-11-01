@@ -24,6 +24,9 @@ type containerState struct {
 	be, be2 *blockEntity
 	rows    int
 	pos     [3]int32
+	// The click engine of the window, kept while it is open: a drag lives across several clicks.
+	win     *clickWin
+	winKind containerKind
 }
 
 func (c *containerState) size() (w, h int) {
@@ -44,7 +47,7 @@ func (g *game) recompute() {
 }
 
 func (g *game) openContainer(k containerKind) {
-	g.cont = containerState{kind: k}
+	g.cont, g.wui = containerState{kind: k}, winUI{}
 	g.openScreen(screenContainer)
 	if k == contPlayer && g.net != nil { // Minecraft.runTick: "open inventory" goes to the server before the screen opens
 		p := newPacket(0x16)

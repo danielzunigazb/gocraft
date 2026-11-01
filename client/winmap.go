@@ -78,9 +78,16 @@ func (g *game) playerSlots(m *winMap, from int) {
 func (g *game) localMap() *winMap {
 	m := &winMap{cursor: &g.cursor, predict: true}
 	n := 0
+	engine := func(kind containerKind, size int, mk func() *clickWin) *clickWin {
+		c := &g.cont
+		if c.win == nil || c.winKind != kind || len(c.win.slots) != size {
+			c.win, c.winKind = mk(), kind
+		}
+		return c.win
+	}
 	switch g.cont.kind {
 	case contPlayer, contNone: // nothing open is the player's own, as containerSlots lays it out
-		m.w = playerWin()
+		m.w = engine(contPlayer, 45, playerWin)
 		m.slot = make([]*slot, 45)
 		m.slot[0] = &g.cont.result
 		for i := 0; i < 4; i++ {
@@ -96,7 +103,7 @@ func (g *game) localMap() *winMap {
 		}
 		return m
 	case contTable:
-		m.w, n = tableWin(), 10
+		m.w, n = engine(contTable, 46, tableWin), 10
 		m.slot = make([]*slot, 46)
 		m.slot[0] = &g.cont.result
 		for i := 0; i < 9; i++ {
@@ -105,14 +112,14 @@ func (g *game) localMap() *winMap {
 		g.playerSlots(m, 10)
 	case contChest:
 		n = g.cont.rows * 9
-		m.w = boxWin(n)
+		m.w = engine(contChest, n+36, func() *clickWin { return boxWin(n) })
 		m.slot = make([]*slot, n+36)
 		for i := 0; i < n; i++ {
 			m.slot[i] = g.cont.beSlot(i)
 		}
 		g.playerSlots(m, n)
 	case contFurnace:
-		m.w = furnaceWin()
+		m.w = engine(contFurnace, 39, furnaceWin)
 		m.slot = make([]*slot, 39)
 		for i := 0; i < 3; i++ {
 			m.slot[i] = &g.cont.be.items[i]
@@ -145,17 +152,22 @@ func (g *game) serverMap() *winMap {
 		}
 		m.extra[sw.n+k] = &g.net.extra[pi]
 	}
+	var mk func() *clickWin
 	switch kind := sw.kind; {
 	case kind == "minecraft:furnace" && sw.n == 3:
-		m.w, m.predict = furnaceWin(), true
+		mk, m.predict = furnaceWin, true
 	case kind == "minecraft:crafting_table" && sw.n == 10:
-		m.w, m.predict = tableWin(), true
+		mk, m.predict = tableWin, true
 	case sw.n > 0 && (kind == "minecraft:chest" || kind == "minecraft:container" || kind == "minecraft:hopper" ||
 		kind == "minecraft:dispenser" || kind == "minecraft:dropper"):
-		m.w, m.predict = boxWin(sw.n), true
+		mk, m.predict = func() *clickWin { return boxWin(sw.n) }, true
 	default:
-		m.w = newClickWin(sw.n)
+		mk = func() *clickWin { return newClickWin(sw.n) }
 	}
+	if sw.win == nil || len(sw.win.slots) != sw.n+36 {
+		sw.win = mk()
+	}
+	m.w = sw.win
 	return m
 }
 

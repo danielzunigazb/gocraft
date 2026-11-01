@@ -48,6 +48,9 @@ func (g *game) centredText(s string, cx, y, scale float32, col [4]float32) {
 
 // mouse is the cursor in framebuffer pixels.
 func (g *game) mouse() (x, y float32) {
+	if g.win == nil { // no window (a test): the position is already in pixels
+		return float32(g.cx), float32(g.cy)
+	}
 	f := float64(g.fb[0]) / float64(max(g.winSize(), 1))
 	return float32(g.cx * f), float32(g.cy * f)
 }
