@@ -15,8 +15,9 @@ import (
 
 // pvpState is what the game keeps for fighting: the mouse buttons as the game takes them in (clicks.go).
 type pvpState struct {
-	clicks clickState
-	use    itemUse // the item in use on a third-party server (itemuse.go)
+	clicks                  clickState
+	use                     itemUse // the item in use on a third-party server (itemuse.go)
+	sprintLatch, sneakLatch bool    // toggle sprint and toggle sneak: the key is held for the player (pvpmode.go)
 }
 
 // rayBoxDist is how far, squared, along the player's view a box is hit within reach 3, and whether

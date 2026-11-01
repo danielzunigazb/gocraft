@@ -442,7 +442,7 @@ func (g *game) handGeometry(partial float32) (passes []handPass) {
 
 	// The view bob and the trail of the hand behind the view come first, outermost.
 	base := ident()
-	if g.opts.ViewBobbing {
+	if g.viewBobbing() {
 		walked := h.prevWalked + (h.walked-h.prevWalked)*partial
 		by := h.prevBobYaw + (h.bobYaw-h.prevBobYaw)*partial
 		bp := h.prevBobPitch + (h.bobPitch-h.prevBobPitch)*partial
@@ -499,7 +499,11 @@ func (g *game) handGeometry(partial float32) (passes []handPass) {
 		f := float32(eatUseMax-g.eating) - partial + 1
 		m = base.then(eatPose(f), transformFirstPersonItem(equip, 0))
 	case useBlock:
-		m = base.then(transformFirstPersonItem(equip, 0), blockPose())
+		if g.blockHit17() { // 1.7's renderItemInFirstPerson: the swing is not left out while the sword is up
+			m = base.then(swingTranslation(swing), transformFirstPersonItem(equip, swing), blockPose())
+		} else {
+			m = base.then(transformFirstPersonItem(equip, 0), blockPose())
+		}
 	case useBow:
 		f := max(float32(g.bowTicks)+partial-1, 0)
 		m = base.then(transformFirstPersonItem(equip, 0), bowPose(f))

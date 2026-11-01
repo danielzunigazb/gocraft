@@ -26,6 +26,7 @@ var keyActions = []keyAction{
 	{"forward", "Walk Forwards", 17}, {"left", "Strafe Left", 30}, {"back", "Walk Backwards", 31}, {"right", "Strafe Right", 32},
 	{"jump", "Jump", 57}, {"sneak", "Sneak", 42}, {"sprint", "Sprint", 29}, {"inventory", "Open Inventory", 18},
 	{"drop", "Drop Item", 16}, {"togglePerspective", "Toggle Perspective", 63}, {"attack", "Attack/Destroy", -100}, {"use", "Use/Place Block", -99}, {"pickItem", "Pick Block", -98},
+	{"pvpMode", "PvP Mode", 25}, // gocraft's own (P): vanilla's options.txt has no such key
 }
 
 type options struct {
@@ -47,11 +48,12 @@ type options struct {
 	SoundVolume    map[string]float32 // soundCategory_*: master, music, record, weather, block, hostile, neutral, player, ambient, each 0..1
 	MSAClientID    string             // the client ID of the Azure application used to sign in (public, not a secret)
 	PlayerName     string             // the name used in multiplayer (offline mode)
+	PvP            pvpOptions         // the PvP mode and its parts (pvpmode.go)
 	packsSet       bool               // the file said which packs, even none
 }
 
 func defaultOptions() options {
-	o := options{FOV: 70, Sensitivity: 0.5, RenderDistance: 8, VSync: true, DynamicLights: true, ViewBobbing: true, Keys: map[string]int{}, SoundVolume: map[string]float32{}}
+	o := options{FOV: 70, Sensitivity: 0.5, RenderDistance: 8, VSync: true, DynamicLights: true, ViewBobbing: true, Keys: map[string]int{}, SoundVolume: map[string]float32{}, PvP: defaultPvP()}
 	for _, k := range keyActions {
 		o.Keys[k.id] = k.def
 	}
@@ -121,6 +123,12 @@ func parseOptions(r *bufio.Scanner, o options) options {
 				o.Packs, o.packsSet = names, true
 			}
 		default:
+			if strings.HasPrefix(k, "pvp") {
+				if o.PvP.Parts == nil {
+					o.PvP = defaultPvP()
+				}
+				o.PvP.parse(k, v)
+			}
 			if cat, ok := strings.CutPrefix(k, "soundCategory_"); ok && ferr == nil {
 				if o.SoundVolume == nil {
 					o.SoundVolume = map[string]float32{}
@@ -194,6 +202,9 @@ func (o options) save() error {
 		if v, ok := o.SoundVolume[c]; ok {
 			fmt.Fprintf(&b, "soundCategory_%s:%g\n", c, v)
 		}
+	}
+	if o.PvP.Parts != nil {
+		o.PvP.write(&b)
 	}
 	for _, k := range keyActions {
 		fmt.Fprintf(&b, "key_key.%s:%d\n", k.id, o.Keys[k.id])

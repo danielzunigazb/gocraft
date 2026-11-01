@@ -159,7 +159,9 @@ func (g *game) readInput() input {
 	if g.keyDown("right") {
 		in.strafe--
 	}
-	in.jump, in.sneak, in.sprint = g.keyDown("jump"), g.keyDown("sneak"), g.keyDown("sprint")
+	in.jump = g.keyDown("jump")
+	in.sneak = g.keyDown("sneak") || g.latched("sneak") // a toggle of the PvP mode holds the key for the player
+	in.sprint = g.keyDown("sprint") || g.latched("sprint")
 	return in
 }
 

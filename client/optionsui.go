@@ -9,7 +9,7 @@ import (
 
 // leaveOptions saves the options and returns to the screen that opened them.
 func (g *game) leaveOptions() {
-	soundPage = false
+	soundPage, pvpPage = false, 0
 	if err := g.opts.save(); err != nil {
 		logf("saving options: %v", err)
 	}
@@ -115,6 +115,10 @@ func (g *game) drawOptions(cx, s float32) {
 		g.drawSoundOptions(cx, s)
 		return
 	}
+	if pvpPage > 0 {
+		g.drawPvPOptions(cx, s)
+		return
+	}
 	g.dirtBackground(0.45)
 	w, h := float32(g.fb[0]), float32(g.fb[1])
 	g.centredText("Options", w/2, 15*s, s, [4]float32{1, 1, 1, 1})
@@ -161,6 +165,12 @@ func (g *game) drawOptions(cx, s float32) {
 		g.packList = listPacks(g.opt.PacksDir)
 		g.screen = screenPacks
 	}
+	if g.button("PvP Mode...", lx, top+144, 150, true) {
+		pvpPage = 1
+	}
+	if g.button("View Bobbing: "+onOff(o.ViewBobbing), rx, top+144, 150, true) {
+		o.ViewBobbing = !o.ViewBobbing
+	}
 	if g.button("Done", cx-100, h/s-28, 200, true) {
 		g.leaveOptions()
 	}
@@ -170,10 +180,10 @@ func (g *game) drawControls(cx, s float32) {
 	g.dirtBackground(0.45)
 	w, h := float32(g.fb[0]), float32(g.fb[1])
 	g.centredText("Controls", w/2, 15*s, s, [4]float32{1, 1, 1, 1})
-	for i, a := range keyActions {
-		col, row := i/6, i%6
+	for i, a := range keyActions { // two columns of seven
+		col, row := i/7, i%7
 		x := cx - 155 + float32(col)*160
-		y := float32(36 + row*24)
+		y := float32(32 + row*22)
 		g.text(trimName(a.label, 14), x*s, (y+6)*s, s, [4]float32{1, 1, 1, 1}, true)
 		name := keyName(g.opts.Keys[a.id])
 		if g.rebinding == a.id {

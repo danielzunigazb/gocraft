@@ -548,6 +548,9 @@ func (g *game) onKey(w *glfw.Window, key glfw.Key, _ int, action glfw.Action, _ 
 	if code, ok := lwjglOf[key]; ok && code == g.opts.Keys["togglePerspective"] && g.screen == screenNone {
 		g.perspective = (g.perspective + 1) % 3
 	}
+	if code, ok := lwjglOf[key]; ok && g.screen == screenNone && g.inGame {
+		g.pvpKey(code) // the PvP mode's key, and its toggles of sprint and sneak (pvpmode.go)
+	}
 	if key == glfw.KeyF3 {
 		g.debug = !g.debug
 	}
