@@ -159,6 +159,8 @@ type game struct {
 	damage                     map[int32]*blockDamage // cracks of blocks being mined, by who mines them
 	crackVerts                 []vertex
 	crackMesh                  entityMesh
+	orbMesh                    entityMesh // experience orbs, rewritten each frame
+	orbVerts                   []vertex
 	keyHeld                    func(action string) bool     // tests: which keys are down when there is no window
 	signs                      map[[3]int32]*[4][]styledRun // the text of the signs, by block
 	entMobs                    entityMesh
@@ -638,6 +640,7 @@ func (g *game) draw() {
 	g.drawChunks(&mvp)
 	g.drawFishLines(&mvp)
 	g.drawParticles()
+	g.drawOrbs()
 
 	g.drawOutline(&mvp)
 	g.drawHand(w, h)

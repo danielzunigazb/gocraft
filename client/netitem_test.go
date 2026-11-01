@@ -170,3 +170,54 @@ func TestServerItemCollectAndDestroy(t *testing.T) {
 		t.Fatal("a respawn left the server's items")
 	}
 }
+
+// An experience orb is spawned where the server says, is not a click target, draws as the sprite of its size
+// with a colour that pulses, and is gone when it is collected.
+func TestExperienceOrbs(t *testing.T) {
+	g, _ := windowGame(t)
+	g.net.received[world.ChunkPos{X: 0, Z: 0}] = true
+	w := newPacket(0x11)
+	w.VarInt(80)
+	w.Int(int32(2.5 * 32))
+	w.Int(int32(5 * 32))
+	w.Int(int32(3.5 * 32))
+	w.UShort(37)
+	decodeFrame(t, w, nil)(g)
+	e := g.net.entity(80)
+	if e == nil || e.obj != objOrb || e.orb != 37 || e.pos != (vec3{2.5, 5, 3.5}) {
+		t.Fatalf("orb %+v", e)
+	}
+	for v, want := range map[int]int{0: 0, 2: 0, 3: 1, 6: 1, 7: 2, 36: 3, 37: 4, 148: 5, 149: 6, 616: 7, 617: 8, 1236: 8, 1237: 9, 2476: 9, 2477: 10, 99999: 10} {
+		if got := orbIcon(v); got != want {
+			t.Errorf("an orb of %d is icon %d, want %d", v, got, want)
+		}
+	}
+	vs := orbVertices(nil, e.pos, vec3{1, 0, 0}, vec3{0, 1, 0}, 37, 0, 0, 0xF0)
+	if len(vs) != 4 || vs[0].U != 0 || vs[2].U != 16.0/64 || vs[0].V != 32.0/64 { // icon 4: first column, second row
+		t.Fatalf("quad %+v", vs)
+	}
+	if h := vs[2].Y - vs[0].Y; !near(h, 0.3, 1e-6) {
+		t.Fatalf("an orb is %v high, want 0.3", h)
+	}
+	pulse := map[uint8]bool{}
+	for age := 0; age < 40; age++ {
+		pulse[orbVertices(nil, e.pos, vec3{1, 0, 0}, vec3{0, 1, 0}, 37, age, 0, 0xF0)[0].C[0]] = true
+	}
+	if len(pulse) < 10 {
+		t.Fatalf("the colour takes only %d values over its life", len(pulse))
+	}
+	g.tick(input{})
+	if e.age != 1 {
+		t.Fatalf("age %d", e.age)
+	}
+	if h := g.net.entity(80); h.height() == 0 {
+		t.Log("height is not used for an orb")
+	}
+	if _, ok := g.entityTarget(); ok {
+		t.Fatal("an orb is a click target")
+	}
+	decodeFrame(t, collectPacket(80, 1), nil)(g)
+	if g.net.entity(80) != nil {
+		t.Fatal("a collected orb stayed")
+	}
+}

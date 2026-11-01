@@ -165,6 +165,10 @@ func (g *game) itemsDemo() {
 		e := g.net.netItem(int32(100 + i))
 		e.stack, e.age, e.hover = s, 7*i, float32(i)
 	}
+	for i, v := range []int{1, 5, 20, 60, 200, 500, 1000, 3000} { // experience orbs of growing value
+		at := g.feet.add(ground).add(f.scale(2)).add(right.scale(float64(i)*0.45 - 1.6)).add(vec3{0, 0.6, 0})
+		g.net.addEntity(&netEntity{eid: int32(300 + i), obj: objOrb, orb: v, pos: at, prev: at, target: at, age: i * 3})
+	}
 	at := g.feet.add(ground).add(f.scale(6)).add(right.scale(2))
 	g.net.remote[12] = &remotePlayer{eid: 12, name: "Steve", pos: at, prev: at, target: at, yaw: 200, tyaw: 200, headYaw: 200, thead: 200, body: 200, prevBody: 200}
 	lay := at.add(right.scale(-2.2))

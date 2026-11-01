@@ -101,8 +101,12 @@ func (g *game) netCollect(item, collector int32) {
 		n.removeNetItem(item)
 		return
 	}
-	if e := n.entity(item); e != nil { // an arrow picked up
-		g.sound("random.pop", e.pos, 0.2, ((rnd()-rnd())*0.7+1)*2)
+	if e := n.entity(item); e != nil { // an arrow picked up, or an orb of experience taken
+		if e.obj == objOrb {
+			g.sound("random.orb", e.pos, 0.1, (rnd()-rnd())*0.35+0.9)
+		} else {
+			g.sound("random.pop", e.pos, 0.2, ((rnd()-rnd())*0.7+1)*2)
+		}
 		delete(n.ents, item)
 	}
 }

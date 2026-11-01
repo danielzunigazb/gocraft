@@ -29,6 +29,8 @@ type netEntity struct {
 	mob          *netMob // a mob gocraft has a model for
 	health       float32 // metadata 6, for what shows a health bar
 	healthSet    bool
+	orb          int // an experience orb's value
+	age          int // ticks since it appeared: an orb's colour pulses with it
 }
 
 const (
@@ -71,6 +73,7 @@ func (e *netEntity) moveTo(t vec3) {
 func (g *game) tickEnts() {
 	for _, e := range g.net.ents {
 		e.prev = e.pos
+		e.age++
 		if e.mob != nil {
 			tickNetMob(e)
 			continue
