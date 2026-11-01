@@ -29,6 +29,7 @@ type serverWindow struct {
 	cursorX itemExtra
 	action  int16     // the transaction number of the last click, which a server that refuses it answers with
 	win     *clickWin // the click engine of the window, kept while it is open: a drag lives across several clicks
+	props   [16]int   // Window Property: a furnace's flame and arrow, an enchanting table's levels
 }
 
 // readSlotX reads an item stack with its tag: the display name and lore are kept, the rest is skipped.
@@ -222,6 +223,19 @@ func (w *serverWindow) layout() (slots []winSlot, h int) {
 		}
 		player(84, 142)
 		return slots, 166
+	case w.kind == "minecraft:crafting_table" && w.n == 10:
+		add(124, 35)
+		for i := 0; i < 9; i++ {
+			add(30+18*(i%3), 17+18*(i/3))
+		}
+		player(84, 142)
+		return slots, 166
+	case w.kind == "minecraft:furnace" && w.n == 3:
+		add(56, 17)
+		add(56, 53)
+		add(116, 35)
+		player(84, 142)
+		return slots, 166
 	}
 	rows := max((w.n+8)/9, 1)
 	for i := 0; i < w.n; i++ {
@@ -250,7 +264,7 @@ func (g *game) drawServerWindow(w, h int) {
 	g.enableUI()
 	hd.rect(0, 0, float32(w), float32(h), 0, 0, 1, 1, 1, 1, [4]float32{0.06, 0.06, 0.06, 0.6})
 	hd.flush(hd.white)
-	invLabel := 0
+	invLabel, titleX := 0, 8
 	switch {
 	case win.kind == "minecraft:hopper" && win.n == 5:
 		hd.rect(left, top, contW*s, 133*s, 0, 0, contW, 133, 256, 256, one)
@@ -260,6 +274,26 @@ func (g *game) drawServerWindow(w, h int) {
 		hd.rect(left, top, contW*s, 166*s, 0, 0, contW, 166, 256, 256, one)
 		hd.flush(g.guiTexture("dispenser"))
 		invLabel = 72
+	case win.kind == "minecraft:crafting_table" && win.n == 10:
+		hd.rect(left, top, contW*s, contH*s, 0, 0, contW, contH, 256, 256, one)
+		hd.flush(hd.tableTex)
+		titleX, invLabel = 28, 72
+	case win.kind == "minecraft:furnace" && win.n == 3:
+		hd.rect(left, top, contW*s, contH*s, 0, 0, contW, contH, 256, 256, one)
+		if win.props[1] > 0 { // the flame shrinks as the fuel burns (GuiFurnace.func_175382_i)
+			total := win.props[2]
+			if total == 0 {
+				total = 200
+			}
+			k := float32(win.props[1] * 13 / total)
+			hd.rect(left+56*s, top+(36+12-k)*s, 14*s, (k+1)*s, 176, 12-k, 14, k+1, 256, 256, one)
+		}
+		if win.props[0] != 0 && win.props[3] != 0 { // and the arrow fills from the left
+			l := float32(win.props[0] * 24 / win.props[3])
+			hd.rect(left+79*s, top+34*s, (l+1)*s, 16*s, 176, 14, l+1, 16, 256, 256, one)
+		}
+		hd.flush(g.guiTexture("furnace"))
+		titleX, invLabel = -1, 72
 	default:
 		rows := float32(max((win.n+8)/9, 1))
 		hd.rect(left, top, contW*s, (rows*18+17)*s, 0, 0, contW, rows*18+17, 256, 256, one)
@@ -267,7 +301,10 @@ func (g *game) drawServerWindow(w, h int) {
 		hd.flush(g.guiTexture("generic_54"))
 		invLabel = int(rows*18) + 17 + 3
 	}
-	g.drawRuns(win.title, left+8*s, top+6*s, s, 1, false)
+	if titleX < 0 { // a furnace centres its title
+		titleX = int((contW - float32(g.runsWidth(win.title))) / 2)
+	}
+	g.drawRuns(win.title, left+float32(titleX)*s, top+6*s, s, 1, false)
 	g.text("Inventory", left+8*s, top+float32(invLabel)*s, s, [4]float32{0.25, 0.25, 0.25, 1}, false)
 	prev, remnant, painting := g.dragPreview(g.serverMap()) // a stack painted across slots shows what each would hold
 	shown := func(i int) slot {

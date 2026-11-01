@@ -273,3 +273,51 @@ func TestTransactionNumbersCountPerWindow(t *testing.T) {
 		t.Fatalf("transaction numbers %v, want 1 2 (window 0) 1 (window 7) 3 (window 0 again)", got)
 	}
 }
+
+// A furnace and a crafting table opened by a server have their own layouts, are predicted by the engine, and
+// the server's Window Property drives the furnace's flame and arrow.
+func TestServerFurnaceAndCraftingTable(t *testing.T) {
+	g, c := netPlayerGame(t)
+	g.openServerWindow(4, "minecraft:furnace", `{"text":"Furnace"}`, 3)
+	slots, h := g.swin.layout()
+	if h != 166 || len(slots) != 39 || slots[0] != (winSlot{56, 17, 0}) || slots[1] != (winSlot{56, 53, 1}) || slots[2] != (winSlot{116, 35, 2}) {
+		t.Fatalf("furnace layout: height %d, %d slots, first three %v", h, len(slots), slots[:3])
+	}
+	prop := func(win int8, id, val uint16) {
+		p := newPacket(0x31)
+		p.Byte(byte(win))
+		p.UShort(id)
+		p.UShort(val)
+		if f := decodeFrame(t, p, nil); f != nil {
+			f(g)
+		}
+	}
+	prop(4, 1, 150)
+	prop(4, 2, 300)
+	prop(9, 1, 7)  // another window's
+	prop(4, 99, 1) // not a property
+	if g.swin.props[1] != 150 || g.swin.props[2] != 300 || g.swin.props[3] != 0 {
+		t.Fatalf("properties %v", g.swin.props)
+	}
+	g.inv[0] = slot{ID: ironOre, N: 8} // window slot 3 + 27
+	g.sendWindowClick(30, 0, 1)
+	if g.swin.slots[0] != (slot{ID: ironOre, N: 8}) || !g.inv[0].empty() {
+		t.Fatalf("shift-click: input %v hotbar %v", g.swin.slots[0], g.inv[0])
+	}
+	ks := readClicks(t, c)
+	if len(ks) != 1 || ks[0].win != 4 || ks[0].slot != 30 || ks[0].mode != 1 || ks[0].id != ironOre || ks[0].n != 8 {
+		t.Fatalf("sent %+v", ks)
+	}
+
+	g.openServerWindow(6, "minecraft:crafting_table", `{"text":"Crafting"}`, 10)
+	slots, h = g.swin.layout()
+	if h != 166 || slots[0] != (winSlot{124, 35, 0}) || slots[1] != (winSlot{30, 17, 1}) || slots[9] != (winSlot{66, 53, 9}) {
+		t.Fatalf("table layout: height %d, %v %v %v", h, slots[0], slots[1], slots[9])
+	}
+	g.swin.slots[0] = slot{ID: stick, N: 4} // what the server's window contents said the result is
+	g.swin.slots[1], g.swin.slots[4] = slot{ID: planks, N: 2}, slot{ID: planks, N: 2}
+	g.sendWindowClick(0, 0, 0)
+	if g.swin.cursor != (slot{ID: stick, N: 4}) || g.swin.slots[1].N != 1 || g.swin.slots[4].N != 1 || g.swin.slots[0] != (slot{ID: stick, N: 4}) {
+		t.Fatalf("crafted: cursor %v grid %v %v result %v", g.swin.cursor, g.swin.slots[1], g.swin.slots[4], g.swin.slots[0])
+	}
+}

@@ -182,7 +182,7 @@ func TestServerWindowLayouts(t *testing.T) {
 		n       int
 		h, last int
 	}{{"minecraft:chest", 27, 114 + 3*18, 27 + 36}, {"minecraft:chest", 54, 114 + 6*18, 54 + 36}, {"minecraft:hopper", 5, 133, 5 + 36},
-		{"minecraft:dispenser", 9, 166, 9 + 36}, {"minecraft:crafting_table", 10, 114 + 2*18, 10 + 36}} {
+		{"minecraft:dispenser", 9, 166, 9 + 36}, {"minecraft:crafting_table", 10, 166, 10 + 36}, {"minecraft:furnace", 3, 166, 3 + 36}} {
 		w := &serverWindow{kind: c.kind, n: c.n}
 		slots, h := w.layout()
 		if h != c.h || len(slots) != c.last {

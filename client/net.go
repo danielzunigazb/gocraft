@@ -1038,6 +1038,16 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 				g.netSetSlot(win, i, items[i], extras[i])
 			}
 		}
+	case 0x31: // window property: a furnace's burn and cook times, an enchanting table's levels
+		win, prop, val := int8(r.Byte()), int(r.Short()), int(r.Short())
+		if r.Err() != nil || prop < 0 || prop >= 16 {
+			return nil
+		}
+		return func(g *game) {
+			if g.swin != nil && g.swin.id == win {
+				g.swin.props[prop] = val
+			}
+		}
 	case 0x32: // confirm transaction: a refused one wants the same answer back, as the game gives it
 		win, action, accepted := r.Byte(), r.Short(), r.Bool()
 		if r.Err() != nil || accepted {
