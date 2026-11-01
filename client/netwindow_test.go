@@ -626,8 +626,14 @@ func TestPotionEffectsChangeMovement(t *testing.T) {
 	g.effects[effJump] = potionEffect{1, 2}
 	g.tickEffects()
 	g.tickEffects()
+	if e, ok := g.effects[effJump]; !ok || e.ticks != 0 {
+		t.Fatal("an effect that ran out on a server must stay until the server takes it off")
+	}
+	g.net = nil // in single player it ends by itself
+	g.effects[effJump] = potionEffect{1, 1}
+	g.tickEffects()
 	if _, ok := g.effects[effJump]; ok {
-		t.Fatal("an effect that ran out stayed")
+		t.Fatal("an effect that ran out in single player stayed")
 	}
 }
 

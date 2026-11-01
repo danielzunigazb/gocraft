@@ -59,13 +59,15 @@ func (g *game) jumpBoost() float64 {
 	return 0
 }
 
-// tickEffects counts the effects down; the server takes them off when they end, and so does this.
+// tickEffects counts the effects down. In single player one that runs out ends; on a server it stays until the
+// server takes it off (EntityLivingBase.updatePotionEffects removes nothing in a client's world), so a Speed that
+// runs out here a ping before the server's Remove Entity Effect still counts in the movement, as the game's does.
 func (g *game) tickEffects() {
 	for id, e := range g.effects {
 		if e.ticks > 0 {
 			e.ticks--
 			g.effects[id] = e
-			if e.ticks == 0 {
+			if e.ticks == 0 && g.net == nil {
 				delete(g.effects, id)
 			}
 		}
