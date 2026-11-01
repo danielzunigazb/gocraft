@@ -10,3 +10,5 @@
 
 # local screenshots and captures
 *.png
+# ...except the README screenshots
+!/docs/img/*.png
