@@ -26,7 +26,8 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 - [ ] Bloques y objetos que no son calaveras sobre la cabeza de un armor stand o de un jugador
 - [x] Equipo de los mobs bípedos (armadura en sus dos tamaños, delgada en el esqueleto, y objeto en la mano)
 - [ ] Cabeza grande de los bebés
-- [ ] Modelos: caballo, ocelote, ghast, guardián, magma cube, snowman
+- [x] Modelos de ghast (tentáculos de Random(1660), ojos al disparar) y magma cube (láminas y núcleo)
+- [ ] Modelos: caballo, ocelote, guardián, snowman
 - [x] Borde del mundo (0x44), dibujado con mezcla alfa normal (la aditiva de vanilla dio colores erróneos en headless)
 - [ ] Mapas (0x34), remolino de poción lanzada
 

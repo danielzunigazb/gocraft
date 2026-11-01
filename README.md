@@ -73,8 +73,8 @@ las originales. Los paquetes se leen de la carpeta indicada con `-packs` y se ac
 
 | Área | Peso | Avance | | Hecho | Pendiente |
 |---|--:|--:|---|---|---|
-| Render | 18.3 % | 51 % | `█████░░░░░` | mallado por columnas, luz suave, modelos de bloque, 20 modelos de mobs, partículas, cielo, nombres y carteles | renderers de caballo, ghast, guardián, wither y dragón; mapas |
-| Entidades | 16.6 % | 37 % | `████░░░░░░` | física y movimiento del jugador, jugadores remotos, items, proyectiles, anzuelo, armor stands, cuadros, item frames, cabezas, 20 tipos de mob con IA básica | unos 38 tipos de entidad, la mayoría de las 80 metas de IA, minecarts, monturas |
+| Render | 18.3 % | 51 % | `█████░░░░░` | mallado por columnas, luz suave, modelos de bloque, 22 modelos de mobs, partículas, cielo, nombres y carteles | renderers de caballo, ocelote, guardián, snowman, wither y dragón; mapas |
+| Entidades | 16.6 % | 37 % | `████░░░░░░` | física y movimiento del jugador, jugadores remotos, items, proyectiles, anzuelo, armor stands, cuadros, item frames, cabezas, 22 tipos de mob con IA básica | unos 38 tipos de entidad, la mayoría de las 80 metas de IA, minecarts, monturas |
 | Cliente (interfaz, opciones, sonido) | 15.2 % | 50 % | `█████░░░░░` | HUD, chat con estilos, menús, inventario, opciones, sonido, paquetes de recursos, mundos guardados | inventario creativo, editor de carteles, libros, estadísticas |
 | Generación de mundo | 13.6 % | 55 % | `██████░░░░` | biomas exactos, terreno al 99.9 %, cuevas, barrancos, nether, end, árboles, minerales, lagos | aldeas, fortalezas, minas, templos, monumentos, botín de mazmorras, mesas de arcilla y árboles gigantes |
 | Bloques y entidades-bloque | 12.2 % | 25 % | `██░░░░░░░░` | colisiones, dureza y herramientas, cofres, hornos, carteles, notas, apertura de tapas | flujo de fluidos, cultivos, fuego, redstone, pistones, ticks aleatorios |

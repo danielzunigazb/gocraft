@@ -191,6 +191,7 @@ func (g *game) mobsDemo() {
 		{91, map[int]any{12: -1, 16: 14}}, {51, map[int]any{13: 1}}, {mobPigZombie, nil}, {120, map[int]any{16: 1}},
 		{50, map[int]any{16: 1}}, {55, map[int]any{16: 2}}, {54, map[int]any{12: 1}}, {101, map[int]any{18: 4}}, {92, nil}, {52, nil},
 		{58, nil}, {61, nil}, {99, nil}, {95, nil}, {95, map[int]any{16: 2}}, {95, map[int]any{16: 4}},
+		{62, map[int]any{16: 2}}, {62, nil}, {56, map[int]any{16: 1}},
 	} {
 		at := g.feet.add(ground).add(f.scale(5 + float64(i%2)*2)).add(right.scale(float64(i%8)*1.5 - 5)).add(f.scale(float64(i/8) * 3.5))
 		e := &netEntity{eid: int32(200 + i), kind: d.kind, pos: at, prev: at, target: at}
