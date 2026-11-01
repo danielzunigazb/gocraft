@@ -7,6 +7,19 @@ El cliente juega en mundos propios (formato Anvil de 1.8.9) y se conecta a servi
 No incluye ningún recurso de Mojang: las texturas, modelos y sonidos se leen del `client.jar` de
 1.8.9 **que ya tienes** (`-jar`).
 
+## Capturas
+
+Todas salen de las escenas de demo del propio cliente (`-demo -screen ...`, ver más abajo), así que se pueden
+regenerar. El texto y los nombres son de ejemplo.
+
+| | |
+|---|---|
+| ![Iluminación suave](docs/img/lighting.png)<br>**Iluminación suave** (*smooth lighting*) con oclusión ambiental | ![Mobs de un servidor](docs/img/mobs.png)<br>**Mobs** que un servidor puede mostrar, con sus modelos |
+| ![Jugadores](docs/img/players.png)<br>**Jugadores** con armadura, objetos en mano y la caña con su línea | ![Partículas](docs/img/particles.png)<br>**Partículas** y efectos que manda el servidor |
+| ![Items y orbes](docs/img/items.png)<br>**Items** en el suelo, animación de recogida y **orbes de experiencia** | ![Carteles](docs/img/signs.png)<br>**Carteles** con su texto y colores |
+| ![Grietas al picar](docs/img/cracks.png)<br>**Grietas** de los diez estados de picado | ![Barra de jefe](docs/img/bossbar.png)<br>**Barra de jefe** y panel lateral del *scoreboard* |
+| ![Lista de jugadores](docs/img/tablist.png)<br>**Lista de jugadores** con cabecera y pie | |
+
 ## Qué necesitas
 
 - Go 1.26 o más nuevo.

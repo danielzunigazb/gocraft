@@ -16,7 +16,7 @@ func (g *game) netDemo(menu bool) {
 	g.net = &netState{c: &netClient{conn: conn, done: make(chan struct{})}, received: map[world.ChunkPos]bool{}, remote: map[int32]*remotePlayer{}, names: map[string]string{}}
 	for _, js := range []string{
 		`{"text":"","extra":[{"text":"Cuenta » ","color":"gold","bold":true},{"text":"¡Inicia sesión! ","color":"green"},{"text":"/login <tucontraseña>","color":"yellow"}]}`,
-		`{"text":"§7[§aUni§7] §fRecompensas: Hola §b000danielz§f, tengo §e1 §frecompensas para ti... ven a reclamarlas."}`,
+		`{"text":"§7[§aUni§7] §fRecompensas: Hola §bSteve§f, tengo §e1 §frecompensas para ti... ven a reclamarlas."}`,
 		`{"text":"Posición #4185 (-177) en Victorias de Ranked","color":"white","extra":[{"text":" ¡Ñandú! ","color":"red","bold":true,"underlined":true}]}`,
 		`{"text":"§c▬▬▬▬▬▬ §a✔ §4❤ §fLeyenda §e★ §7› §6§l●"}`,
 		`{"text":"§c§lSkyWars §7» §fpartida §nlista§r §kabcd §rsin formato"}`,
@@ -132,7 +132,7 @@ func (g *game) listDemo() {
 	g.net.header = legacyRuns("§6§lUNIVERSOCRAFT §7Network\n§fJugadores: §a529", defaultStyle)
 	g.net.footer = legacyRuns("§euniversocraft.com §7| §bdiscord.universocraft.com", defaultStyle)
 	g.net.tab = map[string]*tabEntry{}
-	names := []string{"000danielz", "Herobrine", "Steve", "Alex", "Notch", "jeb_", "Dinnerbone", "Grumm", "xXProXx", "Kratos", "Zeus", "Hades", "Athena", "Apolo", "Ares", "Hera", "Eros", "Gaia", "Nyx", "Pan", "Rea", "Tetis", "Uranio", "Febe", "Hebe", "Iris", "Mnemosine", "Temis", "Cronos", "Hestia"}
+	names := []string{"Player", "Herobrine", "Steve", "Alex", "Notch", "jeb_", "Dinnerbone", "Grumm", "xXProXx", "Kratos", "Zeus", "Hades", "Athena", "Apolo", "Ares", "Hera", "Eros", "Gaia", "Nyx", "Pan", "Rea", "Tetis", "Uranio", "Febe", "Hebe", "Iris", "Mnemosine", "Temis", "Cronos", "Hestia"}
 	for i, nm := range names {
 		e := &tabEntry{uuid: fmt.Sprintf("%032x", i+1), name: nm, ping: []int{12, 80, 160, 320, 700, 1200}[i%6]}
 		if i == 1 {
