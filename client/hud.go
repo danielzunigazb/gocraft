@@ -273,6 +273,11 @@ func (h *hud) uploadAll(g *game) {
 	for path, img := range g.res.entity {
 		g.mobTex[path] = uploadTexture(img)
 	}
+	if t, ok := g.mobTex["misc/forcefield"]; ok { // the border's wall repeats across its length and height
+		gl.BindTexture(gl.TEXTURE_2D, t)
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+	}
 	skin, cape, wings := loadLook()
 	g.mobTex["look/skin"], g.mobTex["look/cape"], g.mobTex["look/wings"] = uploadTexture(skin), uploadTexture(cape), uploadTexture(wings)
 	h.dirt, h.logo = 0, 0

@@ -160,6 +160,8 @@ type game struct {
 	damage                     map[int32]*blockDamage // cracks of blocks being mined, by who mines them
 	crackVerts                 []vertex
 	crackMesh                  entityMesh
+	borderMesh                 entityMesh // the world border's wall, rewritten each frame
+	borderVerts                []vertex
 	orbMesh                    entityMesh // experience orbs, rewritten each frame
 	orbVerts                   []vertex
 	keyHeld                    func(action string) bool     // tests: which keys are down when there is no window
@@ -642,6 +644,7 @@ func (g *game) draw() {
 	g.drawFishLines(&mvp)
 	g.drawParticles()
 	g.drawOrbs()
+	g.drawBorder()
 
 	g.drawOutline(&mvp)
 	g.drawHand(w, h)
@@ -698,6 +701,12 @@ func (g *game) loop() error {
 		case "netitems":
 			g.netDemo(false)
 			g.itemsDemo()
+		case "netborder": // the player a few blocks from the east side of a border 60 across
+			g.netDemo(false)
+			g.netWorldBorder(3, 0, 0, 60, 60, 0)
+			g.feet = vec3{26, g.feet[1], 0}
+			g.pos = vec3{26, g.feet[1] + eyeHeight, 0}
+			g.yaw = -math.Pi / 2 // looking east
 		case "netboss":
 			g.netDemo(false)
 			g.net.addEntity(&netEntity{eid: 90, kind: mobWither, pos: vec3{0, 30, 20}, name: legacyRuns("§d§lEvento de Halloween §7- §e2:35", defaultStyle), health: 210, healthSet: true})

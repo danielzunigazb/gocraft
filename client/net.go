@@ -84,6 +84,7 @@ type netState struct {
 	remote         map[int32]*remotePlayer
 	ents           map[int32]*netEntity  // mobs the server spawned, for their names
 	transaction0   int16                 // the player's window's transaction number, which counts up with each click
+	border         *worldBorder          // the world border, once a server has sent one
 	items          map[int32]*itemEntity // dropped items the server spawned; they are in g.items too
 	pickups        []*pickupFX           // items just collected, flying to who took them
 	extra          [45]itemExtra         // names and lore of the items in the player's window, by slot
@@ -843,6 +844,24 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 			return nil
 		}
 		return func(g *game) { g.sel = slot } // the next tick tells the server back, as syncCurrentPlayItem does
+	case 0x44: // world border
+		action := r.VarInt()
+		var x, z, from, to float64
+		var ms int64
+		switch action {
+		case 0:
+			from = r.Double()
+		case 1:
+			from, to, ms = r.Double(), r.Double(), r.VarLong()
+		case 2:
+			x, z = r.Double(), r.Double()
+		case 3:
+			x, z, from, to, ms = r.Double(), r.Double(), r.Double(), r.Double(), r.VarLong()
+		}
+		if r.Err() != nil {
+			return nil
+		}
+		return func(g *game) { g.netWorldBorder(action, x, z, from, to, ms) }
 	case 0x3A: // tab-complete: what the chat line could continue with
 		n := int(r.VarInt())
 		if r.Err() != nil || n < 0 || n > 4096 {
@@ -1286,6 +1305,7 @@ func (g *game) netGameMode(mode byte) {
 func (g *game) netRespawn(d int, mode byte) {
 	n := g.net
 	n.transaction0 = 0                    // a new player has a new window
+	n.border = nil                        // and a new world has the default border until the server says otherwise
 	g.speedsSet, g.sprintTicks = false, 0 // a new player entity
 	for cp := range n.received {
 		g.forgetMesh(cp)

@@ -142,6 +142,23 @@ func (r *Reader) VarInt() int32 {
 	return 0
 }
 
+// VarLong reads a variable-length 64-bit integer (up to ten bytes).
+func (r *Reader) VarLong() int64 {
+	var v uint64
+	for i := 0; i < 10; i++ {
+		b := r.Byte()
+		if r.err != nil {
+			return 0
+		}
+		v |= uint64(b&0x7F) << (7 * i)
+		if b&0x80 == 0 {
+			return int64(v)
+		}
+	}
+	r.err = ErrVarInt
+	return 0
+}
+
 // String reads a VarInt-prefixed UTF-8 string of at most maxChars characters (at most 4 bytes each).
 func (r *Reader) String(maxChars int) string {
 	n := int(r.VarInt())
@@ -192,6 +209,14 @@ func (w *Writer) Float(v float32)  { w.Int(int32(math.Float32bits(v))) }
 func (w *Writer) Double(v float64) { w.Long(int64(math.Float64bits(v))) }
 func (w *Writer) VarInt(v int32) {
 	u := uint32(v)
+	for u >= 0x80 {
+		w.B = append(w.B, byte(u)|0x80)
+		u >>= 7
+	}
+	w.B = append(w.B, byte(u))
+}
+func (w *Writer) VarLong(v int64) {
+	u := uint64(v)
 	for u >= 0x80 {
 		w.B = append(w.B, byte(u)|0x80)
 		u >>= 7

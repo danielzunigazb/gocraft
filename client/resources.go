@@ -208,7 +208,7 @@ func loadResources(jarPath string, packs []string) (*resources, error) {
 			if strings.HasPrefix(path, "armor/") { // what is worn is under models/
 				dir = "models/"
 			}
-			if strings.HasPrefix(path, "blocks/") { // the cracks of mining
+			if strings.HasPrefix(path, "blocks/") || strings.HasPrefix(path, "misc/") { // the cracks of mining, the border's wall
 				dir = ""
 			}
 			if img, err := p.png("assets/minecraft/textures/" + dir + path + ".png"); err == nil {
