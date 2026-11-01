@@ -11,6 +11,9 @@ import (
 func (g *game) updateLighting() {
 	angle := g.dimAngle()
 	sun := sunBrightness(angle)
+	if g.flash > 0 && g.dimn.id == dimOverworld {
+		sun = 1 // EntityRenderer.updateLightmap: the sky is at full light while a bolt flashes
+	}
 	fog := g.dimFogColour(angle)
 	gl.ClearColor(fog[0], fog[1], fog[2], 1)
 	gl.Uniform3f(g.uFogC, fog[0], fog[1], fog[2])

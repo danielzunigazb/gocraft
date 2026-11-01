@@ -168,7 +168,7 @@ func newSoundSystem(jarPath string, vol func(string) float32) *soundSystem {
 var preloadEvents = []string{"step.grass", "step.stone", "step.gravel", "step.sand", "step.wood", "step.cloth", "step.snow", "step.ladder",
 	"dig.grass", "dig.stone", "dig.gravel", "dig.sand", "dig.wood", "dig.cloth", "dig.snow", "dig.glass",
 	"gui.button.press", "random.bow", "random.bowhit", "random.explode", "random.eat", "random.burp", "random.pop", "random.break",
-	"game.player.hurt", "game.player.die"}
+	"game.player.hurt", "game.player.die", "ambient.weather.thunder"}
 
 func (s *soundSystem) preload() {
 	var names []string
@@ -231,7 +231,7 @@ func (s *soundSystem) start(event string, at vec3, vol, pitch float32, relative 
 		return
 	}
 	en := ev.pick()
-	gain := vol * en.volume * s.vol("master")
+	gain := min(vol, 1) * en.volume * s.vol("master") // a volume over 1 only carries the sound farther
 	if ev.category != "master" {
 		gain *= s.vol(ev.category)
 	}

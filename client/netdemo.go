@@ -320,6 +320,18 @@ func (g *game) headsDemo() {
 	}
 }
 
+// lightningDemo strikes three bolts ahead of the player, each of a different shape.
+func (g *game) lightningDemo() {
+	g.net.ents = nil
+	f := look(g.yaw, 0)
+	right := vec3{-f[2], 0, f[0]}
+	for i, seed := range []int64{11, 2024, 987654321} {
+		at := g.feet.add(f.scale(18)).add(right.scale(float64(i)*14 - 14))
+		at = vec3{math.Floor(at[0]), math.Floor(g.feet[1]), math.Floor(at[2])}
+		g.net.addEntity(&netEntity{eid: int32(800 + i), obj: objLightning, bolt: &boltState{state: 1, living: 2, seed: seed, hold: true}, pos: at, prev: at, target: at})
+	}
+}
+
 // particlesDemo shows what servers send most: a ring of coloured dust, hearts, notes, potion swirls, green
 // sparkles, flames, portal specks, crits and a big explosion puff, a few ticks old.
 func (g *game) particlesDemo() {

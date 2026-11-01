@@ -24,6 +24,7 @@ func (g *game) drawMobs() {
 	g.emitChests(groups)
 	g.emitSigns(groups)
 	g.emitSkulls(groups)
+	g.emitBolts(groups)
 	if len(g.mobs) == 0 && len(g.arrows) == 0 && g.perspective == 0 && (g.net == nil || len(g.net.remote) == 0 && len(g.net.ents) == 0) && len(groups) == 0 {
 		return
 	}
@@ -77,11 +78,18 @@ func (g *game) drawMobs() {
 			tex, ok = g.tex, true
 		case "!font": // the text of signs
 			tex, ok = g.hud.font, true
+		case "!bolt": // lightning is drawn last, added to what is behind it
+			continue
 		}
 		if !ok || len(verts) == 0 {
 			continue
 		}
 		gl.BindTexture(gl.TEXTURE_2D, tex)
+		g.entMobs.draw(verts)
+	}
+	if verts := groups["!bolt"]; len(verts) > 0 {
+		gl.BlendFunc(gl.ONE, gl.ONE) // blendFunc(SRC_ALPHA, ONE) at alpha 0.3, with the alpha in the colour
+		gl.BindTexture(gl.TEXTURE_2D, g.hud.white)
 		g.entMobs.draw(verts)
 	}
 	gl.Disable(gl.BLEND)

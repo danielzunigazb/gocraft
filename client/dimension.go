@@ -246,7 +246,7 @@ func (g *game) dimSkyColours(angle float32) (top, horizon [3]float32) {
 		f := g.dimFogColour(angle)
 		return f, f
 	}
-	return skyColour(angle), fogColour(angle)
+	return lightningSky(skyColour(angle), g.flash, g.partial), fogColour(angle)
 }
 
 // dimFogRange is EntityRenderer.setupFog: the Nether's fog is thick and close (it starts at 5% of

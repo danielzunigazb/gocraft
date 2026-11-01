@@ -17,7 +17,8 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 - [x] Barra de jefe (Wither o Dragón falsos), tapas de cofre, notas de note block
 - [x] Cuadros (paintings): las 26 obras de EnumArt, posición, luz por cuadro y caja de clic
 - [x] Item frames: modelo del bloque, objeto con su giro y tamaño (los mapas dentro del marco aún no se dibujan)
-- [ ] Rayos, correas y monturas
+- [x] Rayos (0x2C): forma exacta de RenderLightningBolt, trueno, golpes repetidos y destello del cielo
+- [ ] Correas y monturas
 - [x] Cabezas (calaveras de esqueleto, wither, zombi, jugador con su skin y creeper) como bloque, por 0x35
 - [ ] Banners y spawners (0x35); pistones
 - [x] Armor stands visibles: modelo exacto, pose, brazos, plato, pequeños, armadura y objeto en la mano

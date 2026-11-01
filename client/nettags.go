@@ -30,6 +30,7 @@ type netEntity struct {
 	stand        *standState    // an armor stand's pose, yaw and what it wears
 	painting     *paintingState // a painting on a wall
 	frame        *frameState    // an item frame
+	bolt         *boltState     // a lightning bolt
 	health       float32        // metadata 6, for what shows a health bar
 	healthSet    bool
 	orb          int // an experience orb's value
@@ -74,11 +75,20 @@ func (e *netEntity) moveTo(t vec3) {
 
 // tickEnts moves the entities one tick towards where the server put them, as the game does.
 func (g *game) tickEnts() {
+	if g.flash > 0 {
+		g.flash-- // World.lastLightningBolt counts down; a bolt that is still striking puts it back to 2
+	}
 	for _, e := range g.net.ents {
 		e.prev = e.pos
 		e.age++
 		if e.mob != nil {
 			tickNetMob(e)
+			continue
+		}
+		if e.bolt != nil {
+			if !g.tickBolt(e) {
+				delete(g.net.ents, e.eid)
+			}
 			continue
 		}
 		if e.stand != nil {

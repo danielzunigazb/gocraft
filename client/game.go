@@ -171,6 +171,7 @@ type game struct {
 	keyHeld                    func(action string) bool     // tests: which keys are down when there is no window
 	signs                      map[[3]int32]*[4][]styledRun // the text of the signs, by block
 	skulls                     map[[3]int32]*skullEntity    // the heads a server put on blocks
+	flash                      int                          // ticks left of the sky's flash from a lightning bolt
 	entMobs                    entityMesh
 	debug                      bool
 	frames                     frameStats
@@ -723,6 +724,9 @@ func (g *game) loop() error {
 		case "netmobs":
 			g.netDemo(false)
 			g.mobsDemo()
+		case "netlightning":
+			g.netDemo(false)
+			g.lightningDemo()
 		case "netheads":
 			g.netDemo(false)
 			g.headsDemo()

@@ -1198,6 +1198,15 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 		c := p.center()
 		e := &netEntity{eid: eid, painting: p, pos: c, prev: c, target: c}
 		return func(g *game) { g.net.addEntity(e) }
+	case 0x2C: // spawn global entity: a lightning bolt
+		eid := r.VarInt()
+		kind := r.Byte()
+		x, y, z := float64(r.Int())/32, float64(r.Int())/32, float64(r.Int())/32
+		if r.Err() != nil || kind != 1 {
+			return nil
+		}
+		e := &netEntity{eid: eid, obj: objLightning, bolt: newBolt(), pos: vec3{x, y, z}, prev: vec3{x, y, z}, target: vec3{x, y, z}}
+		return func(g *game) { g.net.addEntity(e) }
 	case 0x11: // spawn experience orb
 		eid := r.VarInt()
 		x, y, z := float64(r.Int())/32, float64(r.Int())/32, float64(r.Int())/32

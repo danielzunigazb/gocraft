@@ -241,7 +241,7 @@ Variables de entorno: `GOCRAFT_BRAND` (identificador anunciado al servidor; por 
 xvfb-run -a ./gocraft -demo -screen netmobs -look 0,18 -screenshot /tmp/mobs.png
 ```
 
-Escenas: `netmobs`, `netstands`, `netpaintings`, `netframes`, `netheads`, `netfish`, `netparticles`, `netitems`, `netboss`, `netborder`, `netlist`, `netchat`, `signs`,
+Escenas: `netmobs`, `netstands`, `netpaintings`, `netframes`, `netheads`, `netlightning`, `netfish`, `netparticles`, `netitems`, `netboss`, `netborder`, `netlist`, `netchat`, `signs`,
 `cracks`, `drag`, `survival`, `inventory`, `title`. Las `net*` requieren `-demo`.
 
 ## Limitaciones conocidas
