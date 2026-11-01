@@ -219,6 +219,7 @@ type game struct {
 	haveCursor                 bool
 	fb                         [2]int
 	hud                        hud
+	pvp                        pvpState // clicks, the item in use on a server, the PvP mode and its HUD
 }
 
 func Run(opt Options) error {
@@ -607,23 +608,7 @@ func (g *game) onMouse(_ *glfw.Window, b glfw.MouseButton, action glfw.Action, _
 		}
 		return
 	}
-	switch code := mouseCode(b); code {
-	case g.opts.Keys["attack"]:
-		g.swingTicks = 6
-		g.sendSwing()
-		if g.attackClick() { // a mob in reach takes the click, as in the game
-			return
-		}
-		if g.creative {
-			g.breakDelay = breakDelayTicks
-			g.breakBlock()
-		}
-	case g.opts.Keys["use"]:
-		g.useDelay = useDelayTicks
-		g.useBlock()
-	case g.opts.Keys["pickItem"]:
-		g.pickBlock()
-	}
+	g.pressButton(mouseCode(b)) // counted now, done at the start of the next tick (clicks.go)
 }
 
 func abs(v int32) int32 {

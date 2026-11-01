@@ -1700,12 +1700,7 @@ func (g *game) syncHotbar() {
 		}
 		n.hotbarKnown = true
 	}
-	if n.sentHeld != g.sel {
-		w := newPacket(0x09)
-		w.UShort(uint16(g.sel))
-		n.c.send(w)
-		n.sentHeld = g.sel
-	}
+	g.syncHeld()
 }
 
 // sendDig tells the server a block was broken (creative breaks at once).

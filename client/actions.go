@@ -207,8 +207,7 @@ func (g *game) pickBlock() { // creative only
 
 // tickActions repeats a held button once its delay has run out.
 func (g *game) tickActions() {
-	g.useDelay = max(g.useDelay-1, 0)
-	g.breakDelay = max(g.breakDelay-1, 0)
+	g.breakDelay = max(g.breakDelay-1, 0) // the use button's delay is counted down with the clicks (takeClicks)
 	if g.screen != screenNone || g.win == nil || g.opt.Bench > 0 { // a benchmark never clicks
 		return
 	}
@@ -226,7 +225,7 @@ func (g *game) tickActions() {
 		g.breakDelay = breakDelayTicks
 		g.breakBlock()
 	}
-	if !g.creative && g.breakDelay == 0 {
+	if !g.creative && g.breakDelay == 0 && g.pvp.clicks.left <= 0 && !g.usingItem() { // sendClickBlockToController
 		g.mine()
 	}
 }

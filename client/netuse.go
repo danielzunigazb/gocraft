@@ -34,6 +34,7 @@ func (g *game) entityTarget() (int32, bool) {
 func (g *game) useNet() {
 	n := g.net
 	held, ex := g.held(), n.extra[36+g.sel]
+	g.syncHeld() // the server uses the slot in hand, so it must know which one it is first
 	if eid, ok := g.entityTarget(); ok {
 		// Minecraft.rightClickMouse: the entity is offered the click, and if it does not take it the item is used
 		// as it would be in the air. So a rod is cast at a rival's face and a sword blocks with one in front.
@@ -89,6 +90,7 @@ func (g *game) sendInteract(eid int32) {
 			hit = at.sub(feet)
 		}
 	}
+	g.syncHeld()
 	w := newPacket(0x02)
 	w.VarInt(eid)
 	w.VarInt(2) // interact at

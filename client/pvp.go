@@ -11,6 +11,11 @@ import (
 // aims, tells the server what it did (the attack, sprinting, blocking) and takes what comes back:
 // its health, the knockback, and who got hurt.
 
+// pvpState is what the game keeps for fighting: the mouse buttons as the game takes them in (clicks.go).
+type pvpState struct {
+	clicks clickState
+}
+
 // rayBoxDist is how far, squared, along the player's view a box is hit within reach 3, and whether
 // it is. A box the eye is inside counts as at distance 0, as in the game.
 func (g *game) rayBoxDist(b aabb) (float32, bool) {
@@ -59,6 +64,7 @@ func (g *game) playerTarget() (*remotePlayer, float32, bool) {
 // player, and a movement check that sees the attacker go on at a sprint's speed after a blow puts them back.
 // For a mob (EntityLivingBase.attackEntityFrom is false in the client's world) the client does nothing.
 func (g *game) attackEntity(eid int32) {
+	g.syncHeld()
 	w := newPacket(0x02)
 	w.VarInt(eid)
 	w.VarInt(1) // attack
