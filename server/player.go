@@ -109,7 +109,10 @@ func (p *Player) play(s *Server, br *bufio.Reader) {
 
 	tm := proto.NewPacket(0x03)
 	tm.Long(0)
-	tm.Long(-6000) // negative: the clock is stopped, at noon
+	s.mu.Lock()
+	clock := s.clock
+	s.mu.Unlock()
+	tm.Long(-clock) // negative: the clock is stopped, at noon until /time says otherwise
 	p.send(tm.Frame())
 
 	abil := proto.NewPacket(0x39)
@@ -276,7 +279,7 @@ func (p *Player) handle(s *Server, id int32, r *proto.Reader) {
 			return
 		}
 		if strings.HasPrefix(msg, "/") {
-			p.send(chatPacket("Unknown command: " + msg))
+			s.runCommand(p, msg)
 			return
 		}
 		s.Broadcast(chatPacket("<" + p.name + "> " + msg))

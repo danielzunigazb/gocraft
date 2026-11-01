@@ -66,7 +66,7 @@ las originales. Los paquetes se leen de la carpeta indicada con `-packs` y se ac
 
 <!-- progress:start -->
 
-**Avance global: 45 %** `██████████████░░░░░░░░░░░░░░░░`
+**Avance global: 46 %** `██████████████░░░░░░░░░░░░░░░░`
 
 | Área | Peso | Avance | | Hecho | Pendiente |
 |---|--:|--:|---|---|---|
@@ -75,7 +75,7 @@ las originales. Los paquetes se leen de la carpeta indicada con `-packs` y se ac
 | Cliente (interfaz, opciones, sonido) | 15.2 % | 50 % | `█████░░░░░` | HUD, chat con estilos, menús, inventario, opciones, sonido, paquetes de recursos, mundos guardados | inventario creativo, editor de carteles, libros, estadísticas |
 | Generación de mundo | 13.6 % | 55 % | `██████░░░░` | biomas exactos, terreno al 99.9 %, cuevas, barrancos, nether, end, árboles, minerales, lagos | aldeas, fortalezas, minas, templos, monumentos, botín de mazmorras, mesas de arcilla y árboles gigantes |
 | Bloques y entidades-bloque | 12.2 % | 25 % | `██░░░░░░░░` | colisiones, dureza y herramientas, cofres, hornos, carteles, notas, apertura de tapas | flujo de fluidos, cultivos, fuego, redstone, pistones, ticks aleatorios |
-| Servidor integrado y comandos | 8.2 % | 14 % | `█░░░░░░░░░` | streaming de chunks, jugadores, combate básico, aparición, guardado del mundo y de los jugadores | comandos, mobs del lado del servidor, ventanas e inventario del lado del servidor |
+| Servidor integrado y comandos | 8.2 % | 18 % | `██░░░░░░░░` | streaming de chunks, jugadores, combate básico, aparición, guardado del mundo y de los jugadores, comandos básicos | los otros 50 comandos del juego, mobs del lado del servidor, ventanas e inventario del lado del servidor |
 | Items, crafteo y contenedores | 7.3 % | 55 % | `██████░░░░` | motor de clics (modos 0-6), 111 recetas, ventanas de cofre, horno, mesa, encantamientos, yunque y alquimia | faro, aldeano, caballo, pociones, libros, fuegos artificiales |
 | Protocolo de red | 5.5 % | 80 % | `████████░░` | 58 de 74 paquetes servidor→cliente y 22 de 24 cliente→servidor, compresión, login en línea y sin conexión | 16 paquetes servidor→cliente, 2 cliente→servidor |
 | Núcleo del mundo | 3.1 % | 70 % | `███████░░░` | formato Anvil, iluminación, chunks | guardado completo de entidades y estadísticas |
@@ -239,6 +239,10 @@ combate y caídas. Con `-save carpeta` guarda lo que los jugadores cambian como 
 `region/`, un `level.dat`, y la posición, salud e inventario de cada jugador en `playerdata/<uuid>.dat`), cada minuto, al
 salir un jugador y al recibir una señal de parada. Una columna que nadie editó no se escribe: vuelve del generador, que es
 el de la semilla. La carpeta se puede abrir con el juego original o con `gocraft -world`.
+
+Comandos (los puede usar cualquier jugador; un servidor sin cuentas no tiene operadores): `/help`, `/list`, `/say`, `/me`,
+`/msg`, `/tp` (coordenadas con `~` o un jugador), `/time set|add`, `/give` (por id o por nombre), `/kill` (solo en
+supervivencia), `/seed` y `/save-all`.
 
 `./gocraft -h` lista todos. Se lee `options.txt` en el formato de vanilla; `ao:0` desactiva la iluminación suave.
 Variables de entorno: `GOCRAFT_BRAND` (identificador anunciado al servidor; por defecto `gocraft`),

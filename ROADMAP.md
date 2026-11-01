@@ -47,6 +47,7 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 - [ ] Resource packs: hoy se rechazan
 
 ## Servidor propio
+- [x] Comandos básicos: help, list, say, me, msg, tp, time, give, kill, seed y save-all
 - [ ] Ventanas e inventarios reales (reutilizando el motor de clics)
 - [ ] Mobs del lado del servidor
 - [x] Guardar el mundo y los jugadores (`-save`): columnas editadas como mundo 1.8.9 y datos de cada jugador, que vuelve donde estaba

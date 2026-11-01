@@ -45,9 +45,9 @@
       "id": "server",
       "name": "Servidor integrado y comandos",
       "weight": 8.2,
-      "percent": 14,
-      "done": "streaming de chunks, jugadores, combate básico, aparición, guardado del mundo y de los jugadores",
-      "missing": "comandos, mobs del lado del servidor, ventanas e inventario del lado del servidor"
+      "percent": 18,
+      "done": "streaming de chunks, jugadores, combate básico, aparición, guardado del mundo y de los jugadores, comandos básicos",
+      "missing": "los otros 50 comandos del juego, mobs del lado del servidor, ventanas e inventario del lado del servidor"
     },
     {
       "id": "items",

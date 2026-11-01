@@ -53,6 +53,7 @@ type Server struct {
 	store  *store                  // the saved world, with Config.SaveDir
 	edited map[world.ChunkPos]bool // columns changed since the last save
 	ticks  int
+	clock  int64 // the time of day the stopped clock shows
 
 	spawnOnce sync.Once
 	spawnAt   [3]float64
@@ -86,7 +87,7 @@ func New(cfg Config) *Server {
 			return world.FlatChunk()
 		})
 	}
-	return &Server{cfg: cfg, world: w, store: st, players: map[int32]*Player{}, nextEID: 1}
+	return &Server{cfg: cfg, world: w, store: st, players: map[int32]*Player{}, nextEID: 1, clock: 6000}
 }
 
 func (s *Server) Serve(l net.Listener) error {
