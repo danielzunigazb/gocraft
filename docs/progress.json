@@ -14,7 +14,7 @@
       "name": "Entidades",
       "weight": 16.6,
       "percent": 37,
-      "done": "física y movimiento del jugador, jugadores remotos, items, proyectiles, anzuelo, armor stands, cuadros, item frames, 20 tipos de mob con IA básica",
+      "done": "física y movimiento del jugador, jugadores remotos, items, proyectiles, anzuelo, armor stands, cuadros, item frames, cabezas, 20 tipos de mob con IA básica",
       "missing": "unos 38 tipos de entidad, la mayoría de las 80 metas de IA, minecarts, monturas"
     },
     {

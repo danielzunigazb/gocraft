@@ -18,9 +18,11 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 - [x] Cuadros (paintings): las 26 obras de EnumArt, posición, luz por cuadro y caja de clic
 - [x] Item frames: modelo del bloque, objeto con su giro y tamaño (los mapas dentro del marco aún no se dibujan)
 - [ ] Rayos, correas y monturas
-- [ ] Cabezas, banners y spawners (0x35); pistones
+- [x] Cabezas (calaveras de esqueleto, wither, zombi, jugador con su skin y creeper) como bloque, por 0x35
+- [ ] Banners y spawners (0x35); pistones
 - [x] Armor stands visibles: modelo exacto, pose, brazos, plato, pequeños, armadura y objeto en la mano
-- [ ] Cabezas y bloques sobre la cabeza de un armor stand (calaveras con skin)
+- [x] Calaveras sobre la cabeza de un armor stand, a 1.1875 de tamaño
+- [ ] Bloques y objetos que no son calaveras sobre la cabeza de un armor stand o de un jugador
 - [ ] Equipo de los mobs, cabeza grande de los bebés
 - [ ] Modelos: caballo, ocelote, ghast, guardián, magma cube, snowman
 - [x] Borde del mundo (0x44), dibujado con mezcla alfa normal (la aditiva de vanilla dio colores erróneos en headless)

@@ -47,6 +47,7 @@ type standState struct {
 	heldX          itemExtra
 	armor          [4]slot // boots, leggings, chestplate, helmet
 	armorX         [4]itemExtra
+	head           headSkull // a skull worn as a helmet
 	hurtTicks, age int
 }
 
@@ -168,6 +169,7 @@ func (g *game) emitStand(groups map[string][]vertex, e *netEntity, small bool) {
 		sc = armorScale{split: true, head: childHeadScale, headDY: childHeadShift, body: childBodyScale, bodyDY: childBodyShift}
 	}
 	emitArmorScaled(groups, s.armor, s.armorX, ar[:], pos, yaw, 0, tint, l, sc)
+	g.emitStandHead(groups, s, pos, yaw, small, rots[sHead], l)
 	if !s.held.empty() {
 		d := pos.sub(g.camPos)
 		g.emitHeldWith(groups, s.held, func(display mat4) mat4 { return standHeldMatrix(rots[sRArm], yaw, small, display) }, pos, false, 0, false, l, d.dot(d) > 24*24, false)

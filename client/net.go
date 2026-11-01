@@ -771,6 +771,13 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 				} else {
 					e.stand.armor[sl-1], e.stand.armorX[sl-1] = it, ex
 				}
+				if sl == 4 { // a skull on the head
+					e.stand.head = headSkull{}
+					if it.ID == idSkullItem {
+						e.stand.head = headSkull{on: true, typ: int(it.Dmg), skin: skullItemSkin(ex.nbt)}
+						g.wantSkinURL(e.stand.head.skin)
+					}
+				}
 			}
 		}
 	case 0x12: // entity velocity
@@ -898,6 +905,14 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 			return nil
 		}
 		return func(g *game) { g.netBlockAction([3]int32{x, y, z}, id, param, blk) }
+	case 0x35: // update block entity: a skull's type, turn and owner
+		x, y, z := proto.UnpackPos(r.Long())
+		action := r.Byte()
+		nbt := append([]byte(nil), r.Rest()...)
+		if r.Err() != nil || action != 4 {
+			return nil
+		}
+		return func(g *game) { g.netBlockEntity([3]int32{x, y, z}, action, nbt) }
 	case 0x33: // update sign: its four lines
 		x, y, z := proto.UnpackPos(r.Long())
 		var lines [4]string
@@ -1352,7 +1367,7 @@ func (g *game) netRespawn(d int, mode byte) {
 	n.received = map[world.ChunkPos]bool{}
 	n.remote = map[int32]*remotePlayer{}
 	n.ents, n.items, n.pickups = nil, nil, nil
-	g.damage, g.signs = nil, nil
+	g.damage, g.signs, g.skulls = nil, nil, nil
 	g.closeServerWindow(false)
 	g.world = world.NewFrom(func(world.ChunkPos) *world.Chunk { return nil })
 	g.world.SetLightRules(g.res.light)

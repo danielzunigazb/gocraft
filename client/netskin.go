@@ -105,19 +105,22 @@ type skinResult struct {
 }
 
 // wantSkin starts getting the skin a player list entry names, if it is not already.
-func (g *game) wantSkin(e *tabEntry) {
-	if e.skinURL == "" || !skinAllowed(e.skinURL) {
+func (g *game) wantSkin(e *tabEntry) { g.wantSkinURL(e.skinURL) }
+
+// wantSkinURL starts getting the skin at a URL, if it is Mojang's and not already on its way.
+func (g *game) wantSkinURL(url string) {
+	if url == "" || !skinAllowed(url) {
 		return
 	}
 	if g.skins == nil {
 		g.skins = map[string]*skinSlot{}
 		g.skinDone = make(chan skinResult, 32)
 	}
-	if _, ok := g.skins[e.skinURL]; ok {
+	if _, ok := g.skins[url]; ok {
 		return
 	}
-	g.skins[e.skinURL] = &skinSlot{}
-	u := e.skinURL
+	g.skins[url] = &skinSlot{}
+	u := url
 	go func() {
 		b, err := skinFetcher(u)
 		var img *image.RGBA

@@ -277,6 +277,49 @@ func (g *game) framesDemo() {
 	}
 }
 
+// headsDemo puts the five kinds of head in a row on the ground, turned a little more each, then three on a wall and
+// armor stands wearing some as helmets.
+func (g *game) headsDemo() {
+	g.net.ents = nil
+	f := look(g.yaw, 0)
+	right := vec3{-f[2], 0, f[0]}
+	base := g.feet.add(f.scale(3.5))
+	by := int32(math.Floor(g.feet[1]))
+	g.skulls = map[[3]int32]*skullEntity{}
+	for i := 0; i < 5; i++ { // on the ground, turned three sixteenths more each
+		at := base.add(right.scale(float64(i)*1.1 - 2.2))
+		p := [3]int32{int32(math.Floor(at[0])), by, int32(math.Floor(at[2]))}
+		g.setBlock(p[0], p[1], p[2], idSkull<<4|1)
+		g.skulls[p] = &skullEntity{typ: i, rot: i * 3}
+	}
+	wallZ := int32(math.Floor(base[2])) + 5
+	bx := int32(math.Floor(base[0]))
+	for x := bx - 3; x <= bx+3; x++ {
+		for y := by; y < by+3; y++ {
+			g.setBlock(x, y, wallZ, 1<<4)
+		}
+	}
+	for i, typ := range []int{0, 2, 4} {
+		p := [3]int32{bx - 2 + int32(i)*2, by + 1, wallZ - 1}
+		g.setBlock(p[0], p[1], p[2], idSkull<<4|2) // facing north, against the wall to its south
+		g.skulls[p] = &skullEntity{typ: typ}
+	}
+	face := g.yawDeg() + 180
+	for i, d := range []struct {
+		typ   int
+		small bool
+		head  [3]float32
+	}{{1, false, [3]float32{0, 0, 0}}, {4, false, [3]float32{15, 30, 0}}, {0, true, [3]float32{0, -20, 8}}, {3, false, [3]float32{-10, 0, 0}}} {
+		at := g.feet.add(f.scale(6.2)).add(right.scale(float64(i)*1.4 - 2.1))
+		e := &netEntity{eid: int32(700 + i), kind: mobArmorStand, pos: at, prev: at, target: at, small: d.small}
+		e.stand = newStand(face)
+		e.stand.arms = true
+		e.stand.pose[0] = d.head
+		e.stand.head = headSkull{on: true, typ: d.typ}
+		g.net.addEntity(e)
+	}
+}
+
 // particlesDemo shows what servers send most: a ring of coloured dust, hearts, notes, potion swirls, green
 // sparkles, flames, portal specks, crits and a big explosion puff, a few ticks old.
 func (g *game) particlesDemo() {
