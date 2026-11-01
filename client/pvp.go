@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"time"
 
 	"gocraft/anvil"
 	"gocraft/proto"
@@ -16,8 +17,9 @@ import (
 // pvpState is what the game keeps for fighting: the mouse buttons as the game takes them in (clicks.go).
 type pvpState struct {
 	clicks                  clickState
-	use                     itemUse // the item in use on a third-party server (itemuse.go)
-	sprintLatch, sneakLatch bool    // toggle sprint and toggle sneak: the key is held for the player (pvpmode.go)
+	use                     itemUse  // the item in use on a third-party server (itemuse.go)
+	sprintLatch, sneakLatch bool     // toggle sprint and toggle sneak: the key is held for the player (pvpmode.go)
+	stats                   pvpStats // what the PvP HUD counts (pvphud.go)
 }
 
 // rayBoxDist is how far, squared, along the player's view a box is hit within reach 3, and whether
@@ -75,6 +77,7 @@ func (g *game) attackEntity(eid int32) {
 	g.net.c.send(w)
 	if g.net.remote[eid] != nil {
 		g.net.hitPending = true // what it costs the player is paid at the start of the next tick, see applyPendingHit
+		g.pvp.stats.attacked(eid, g.ticks, g.blowReach(eid), time.Now())
 	}
 }
 
@@ -207,6 +210,7 @@ func (g *game) netStatus(eid int32, status byte) {
 		case 2:
 			g.hurtTime, g.hurtResist = 10, 20
 			g.playerHurtSound(false)
+			g.pvp.stats.hurt()
 		case 3:
 			g.playerHurtSound(true)
 		}
@@ -222,6 +226,7 @@ func (g *game) netStatus(eid int32, status byte) {
 	switch status {
 	case 2:
 		p.hurt = 10
+		g.pvp.stats.rivalHurt(eid, g.ticks)
 	case 3:
 		p.dead = true
 	}

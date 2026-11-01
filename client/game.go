@@ -660,6 +660,7 @@ func (g *game) draw() {
 	g.drawPortalOverlay(w, h)
 	g.drawTags(&mvp, w, h)
 	g.drawHUD(w, h)
+	g.drawPvPHUD(w, h)
 	g.drawSidebar(w, h)
 	g.drawBossBar(w, h)
 	g.drawChat(w, h)
@@ -724,6 +725,9 @@ func (g *game) loop() error {
 		case "netmobs":
 			g.netDemo(false)
 			g.mobsDemo()
+		case "netpvp":
+			g.netDemo(false)
+			g.pvpDemo()
 		case "netsignedit":
 			g.netDemo(false)
 			g.sedit = &signEditor{pos: [3]int32{0, 4, 0}, lines: [4]string{"[SkyWars]", "Solo", "8/12", ""}, line: 3}
@@ -780,6 +784,9 @@ func (g *game) loop() error {
 			g.fb = [2]int{g.opt.Width, g.opt.Height}
 			g.optionsFrom, g.screen, soundPage = screenTitle, screenOptions, true
 			g.opts.SoundVolume = map[string]float32{"master": 0.235, "music": 0, "weather": 0}
+		case "pvpoptions":
+			g.fb = [2]int{g.opt.Width, g.opt.Height}
+			g.optionsFrom, g.screen, pvpPage = screenTitle, screenOptions, 1
 		case "particles":
 			g.fb = [2]int{g.opt.Width, g.opt.Height}
 			g.demoParticles()
@@ -1189,8 +1196,11 @@ func (g *game) bindKey(key glfw.Key) {
 
 // keyDown reports whether the key or mouse button bound to an action is held.
 func (g *game) keyDown(action string) bool {
+	if g.keyHeld != nil && g.keyHeld(action) { // a test or a screenshot's scene holds keys
+		return true
+	}
 	if g.win == nil {
-		return g.keyHeld != nil && g.keyHeld(action) // a test holds keys without a window
+		return false
 	}
 	code := g.opts.Keys[action]
 	if isMouseCode(code) {

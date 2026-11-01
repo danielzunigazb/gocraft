@@ -6,6 +6,7 @@ package client
 type potionEffect struct {
 	amp   int
 	ticks int
+	max   bool // the server gave it the longest time there is (32767 ticks): it shows as **:**
 }
 
 const (

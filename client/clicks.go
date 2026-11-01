@@ -1,6 +1,9 @@
 package client
 
-import "math"
+import (
+	"math"
+	"time"
+)
 
 // The mouse buttons as 1.8.9's Minecraft.runTick takes them in. A press is only counted when it happens
 // (KeyBinding.onTick raises its pressTime); what it does is decided at the start of the next tick, in this
@@ -30,8 +33,10 @@ func (g *game) pressButton(code int) {
 	switch code {
 	case g.opts.Keys["attack"]:
 		c.attack++
+		g.pvp.stats.press(false, time.Now())
 	case g.opts.Keys["use"]:
 		c.use++
+		g.pvp.stats.press(true, time.Now())
 	case g.opts.Keys["pickItem"]:
 		c.pick++
 	}

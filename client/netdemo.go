@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"time"
 
 	"gocraft/world"
 )
@@ -35,7 +36,7 @@ func (g *game) netDemo(menu bool) {
 	g.absorption, g.maxHP = 6, 20
 	g.xpBar, g.xpLevel = 0.6, 12
 	g.armor = [4]slot{{ID: 310, N: 1}, {ID: 311, N: 1}, {ID: 312, N: 1}, {ID: 313, N: 1}}
-	g.effects = map[int]potionEffect{effRegen: {0, 600}}
+	g.effects = map[int]potionEffect{effRegen: {amp: 0, ticks: 600}}
 	g.hurtResist = 10
 	g.statusBars.shownHP, g.statusBars.lastHP = 16, 16
 	g.statusBars.blinkUntil = 9
@@ -504,4 +505,37 @@ func (g *game) particlesDemo() {
 	for i := 0; i < 3; i++ {
 		g.tickParticles()
 	}
+}
+
+// pvpDemo is a duel with the PvP mode on: the HUD's parts in their corners, the keys held lit, a sword up in
+// the middle of a block-hit, and a rival in front with theirs up too.
+func (g *game) pvpDemo() {
+	now := time.Now()
+	g.opts.PvP = defaultPvP()
+	g.opts.PvP.On, g.opts.PvP.ToggleSprint = true, true
+	g.pvp.sprintLatch = true
+	g.net.c.name = "Steve"
+	g.net.tab = map[string]*tabEntry{"a": {uuid: "a", name: "Steve", ping: 42}}
+	g.keyHeld = func(a string) bool { return a == "forward" || a == "right" || a == "use" }
+	st := &g.pvp.stats
+	for i := 0; i < 9; i++ {
+		st.press(false, now.Add(-time.Duration(i)*90*time.Millisecond))
+	}
+	for i := 0; i < 2; i++ {
+		st.press(true, now.Add(-time.Duration(i)*300*time.Millisecond))
+	}
+	st.combo, st.dealt, st.taken, st.lastLanded = 3, 8, 5, g.ticks
+	st.reach, st.reachAt = 2.87, now
+	g.effects = map[int]potionEffect{effSpeed: {amp: 1, ticks: 1800}, 5: {amp: 0, ticks: 900}, 12: {ticks: 32767, max: true}}
+	g.armor = [4]slot{{ID: 310, N: 1, Dmg: 40}, {ID: 311, N: 1, Dmg: 300}, {ID: 312, N: 1, Dmg: 420}, {ID: 313, N: 1}}
+	g.inv[0], g.inv[1], g.sel = slot{ID: 276, N: 1, Dmg: 120}, slot{ID: 346, N: 1}, 0
+	g.pvp.use = itemUse{on: true, item: g.inv[0], kind: useBlock, count: 71990, dur: 72000}
+	g.useView()
+	g.swingTicks = 3 // half way through the swing of the blow that came just before the sword went up
+	g.hand.item = g.inv[0]
+	f := look(g.yaw, 0)
+	at := g.feet.add(f.scale(2.6))
+	g.net.remote[9] = &remotePlayer{eid: 9, name: "Rival", pos: at, prev: at, target: at, yaw: g.yawDeg() + 180, tyaw: g.yawDeg() + 180,
+		headYaw: g.yawDeg() + 180, thead: g.yawDeg() + 180, body: g.yawDeg() + 180, prevBody: g.yawDeg() + 180, using: true, held: slot{ID: 276, N: 1},
+		armor: [4]slot{{ID: 313, N: 1}, {ID: 312, N: 1}, {ID: 311, N: 1}, {ID: 310, N: 1}}}
 }

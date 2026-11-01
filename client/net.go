@@ -597,7 +597,7 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 				if g.effects == nil {
 					g.effects = map[int]potionEffect{}
 				}
-				g.effects[id] = potionEffect{amp, dur}
+				g.effects[id] = potionEffect{amp: amp, ticks: dur, max: dur == 32767} // S1DPacketEntityEffect.func_149429_c
 			}
 		}
 	case 0x1E: // remove entity effect
@@ -1334,7 +1334,7 @@ func (g *game) connect(addr, name string) error {
 	g.walkCap, g.flyCap = 0, 0
 	g.abilFlags = 0
 	g.speedsSet, g.sprintTicks = false, 0
-	g.pvp.use = itemUse{}
+	g.pvp.use, g.pvp.stats = itemUse{}, pvpStats{}
 	g.titles = titleState{}
 	g.maxHP, g.absorption, g.xpBar, g.xpLevel, g.air = 0, 0, 0, 0, 300
 	g.pos = vec3{0.5, world.SpawnY + eyeHeight, 0.5}
@@ -1408,6 +1408,7 @@ func (g *game) netRespawn(d int, mode byte) {
 	n.border = nil                        // and a new world has the default border until the server says otherwise
 	g.speedsSet, g.sprintTicks = false, 0 // a new player entity
 	g.pvp.use = itemUse{}                 // with nothing in use
+	g.pvp.stats.newFight()
 	for cp := range n.received {
 		g.forgetMesh(cp)
 	}
