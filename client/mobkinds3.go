@@ -108,6 +108,7 @@ func init() {
 		fm: endermanModel(), fur: "enderman/enderman_eyes"}
 	for _, k := range []*mobKind{blaze, golem, wolf, ender} {
 		k.dropsFn = func() []slot { return nil }
+		k.serverOnly = true // they have models for a server's mobs, not the AI of the player's own world
 		kinds[k.id] = k
 	}
 }

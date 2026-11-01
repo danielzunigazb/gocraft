@@ -60,7 +60,7 @@ func toMobJSON(m *mob) mobJSON {
 
 func (g *game) fromMobJSON(j mobJSON) *mob {
 	k := kinds[j.ID]
-	if k == nil {
+	if k == nil || k.serverOnly {
 		return nil
 	}
 	m := g.newMob(k, vec3{float64(j.X), float64(j.Y), float64(j.Z)}, j.Yaw)

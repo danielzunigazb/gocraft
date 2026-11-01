@@ -196,3 +196,20 @@ func TestMobPosesMatchTheirModels(t *testing.T) {
 		}
 	}
 }
+
+// The mobs that exist only for a server's sake are not loaded from a saved world: they would stand there
+// with an AI that was not made for them.
+func TestServerOnlyMobsAreNotLoadedFromSaves(t *testing.T) {
+	g := testGame(t)
+	for _, id := range []string{"Blaze", "Enderman", "Wolf", "VillagerGolem"} {
+		if k := kinds[id]; k == nil || !k.serverOnly {
+			t.Errorf("%s should be server only", id)
+		}
+		if m := g.fromMobJSON(mobJSON{ID: id, Health: 10}); m != nil {
+			t.Errorf("%s was loaded from a save", id)
+		}
+	}
+	if kinds["Zombie"].serverOnly {
+		t.Error("a zombie is a mob of the player's world")
+	}
+}

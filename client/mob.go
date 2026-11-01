@@ -36,6 +36,7 @@ type mobKind struct {
 	yoff        float32  // its model is drawn this much higher
 	dropsFn     func() []slot
 	fullbright  bool // it is drawn at full brightness (a blaze)
+	serverOnly  bool // a server's mobs only: no AI here, so a saved world's are left out
 }
 
 type mob struct {
@@ -464,7 +465,7 @@ func (g *game) loadEntities(cp world.ChunkPos) {
 			continue
 		}
 		k := kinds[id]
-		if k == nil {
+		if k == nil || k.serverOnly {
 			continue
 		}
 		rot := nbtFloats(c["Rotation"], 2)
