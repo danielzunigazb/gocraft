@@ -87,13 +87,21 @@ def main(path):
     use_events = [p for p in P if p[1] == '>' and (p[2] == 8 and 'in the air' in p[3] or p[2] == 7 and 'dig status 5' in p[3] or p[2] == 9)]
     use_events += [(t, '<', 0x1a, 'done') for t, (e, st) in status if e == me and st == '9']
     use_events.sort(key=lambda p: p[0])
-    spans, start, unreleased = [], None, 0
+    # Only these are held up by a use: the swords (block), the bow and the food. A fishing rod, a snowball, an egg or a
+    # pearl act at once and have no release, so a second use of one is vanilla; so is a second use of a bow with no
+    # arrows left (it never starts a draw, and the game sends the click again every four ticks).
+    HOLD = {'267', '268', '272', '276', '283', '261'}
+    spans, start, start_item, unreleased, unreleased_other = [], None, None, 0, 0
     for t, d, i, text in use_events:
         if i == 8:
+            item = re.search(r'use item (-?\d+)', text).group(1)
             if start is not None:
-                unreleased += 1
+                if start_item in HOLD:
+                    unreleased += 1
+                else:
+                    unreleased_other += 1
                 spans.append((start, t))
-            start = t
+            start, start_item = t, item
         elif start is not None:
             spans.append((start, t))
             start = None
@@ -104,6 +112,8 @@ def main(path):
         rel = sum(1 for p in use_events if p[2] == 7)
         print('\n-- items used in the air: %s; %d releases' % (', '.join('%s x%d' % kv for kv in air.most_common()) or 'none', rel))
         print('   !! uses followed by another one with no release between: %d  <- the server kept the item up (a short tap lost)' % unreleased)
+        if unreleased_other:
+            print('      (and %d more of items with no hold, a rod or a snowball: vanilla does that; a bow with no arrows too)' % unreleased_other)
         inside = [t for t in at_times if any(a < t < b for a, b in spans)]
         print('   !! attacks sent while an item was in use: %d  <- a vanilla client never does; an anticheat sees an autoblock' % len(inside))
     else:
