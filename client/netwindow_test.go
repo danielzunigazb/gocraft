@@ -267,14 +267,61 @@ func TestRightClickOnAnEntity(t *testing.T) {
 	d := look(g.yaw, g.pitch)
 	g.net.addEntity(&netEntity{eid: 77, kind: mobArmorStand, pos: vec3{g.pos[0] + d[0]*2, g.pos[1] - 1, g.pos[2] + d[2]*2}})
 	g.useBlock()
-	select {
-	case f := <-c.out:
-		id, r, _ := proto.ReadPacket(bufio.NewReader(bytes.NewReader(f)))
-		if id != 0x02 || r.VarInt() != 77 || r.VarInt() != 0 {
-			t.Fatalf("sent id 0x%02x", id)
+	ps := drain(t, c)
+	if len(ps) != 2 || ps[0].id != 0x02 || ps[1].id != 0x02 {
+		t.Fatalf("sent %d packets: an armor stand is offered the click (interact at, then interact) and keeps it", len(ps))
+	}
+	if eid, kind := ps[0].r.VarInt(), ps[0].r.VarInt(); eid != 77 || kind != 2 {
+		t.Fatalf("first: entity %d action %d, want interact at (2)", eid, kind)
+	}
+	if eid, kind := ps[1].r.VarInt(), ps[1].r.VarInt(); eid != 77 || kind != 0 {
+		t.Fatalf("second: entity %d action %d, want interact (0)", eid, kind)
+	}
+}
+
+// With an item that is not a block in the hand and a rival in front, the game offers the click to the rival and
+// then uses the item as in the air: a rod is cast at them, a sword blocks. A villager keeps the click for itself.
+func TestItemIsUsedWhenPointingAtAPlayer(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		id   uint16
+	}{{"fishing rod", 346}, {"sword", 267}} {
+		g, ch := windowGame(t)
+		g.net.received[world.ChunkPos{X: 0, Z: 0}] = true
+		g.pos = vec3{0.5, 5.62, 0.5}
+		g.feet = vec3{0.5, 4, 0.5}
+		g.yaw, g.pitch = 0, 0
+		g.inv[0], g.sel = slot{ID: c.id, N: 1}, 0
+		g.net.remote[9] = &remotePlayer{eid: 9, name: "Rival", pos: vec3{0.5, 4, 2.2}, prev: vec3{0.5, 4, 2.2}, target: vec3{0.5, 4, 2.2}}
+		g.useBlock()
+		var ids []int32
+		var place *sent
+		for _, p := range drain(t, ch) {
+			p := p
+			ids = append(ids, p.id)
+			if p.id == 0x08 {
+				place = &p
+			}
 		}
-	default:
-		t.Fatal("no interact was sent")
+		if len(ids) < 3 || ids[0] != 0x02 || ids[1] != 0x02 || ids[2] != 0x08 {
+			t.Fatalf("%s: sent %v, want interact at, interact, and the item used (0x08)", c.name, ids)
+		}
+		if pos := place.r.Long(); pos != packPos(-1, -1, -1) || place.r.Byte() != 255 || place.r.Short() != int16(c.id) {
+			t.Fatalf("%s: the use was not an item click in the air", c.name)
+		}
+		if c.id == 346 && ids[len(ids)-1] != 0x0A { // a rod swings the arm as it casts
+			t.Fatalf("%s: no swing after the cast: %v", c.name, ids)
+		}
+	}
+
+	g, ch := windowGame(t)
+	g.pos = vec3{0.5, 5.62, 0.5}
+	g.yaw, g.pitch = 0, 0
+	g.inv[0], g.sel = slot{ID: 346, N: 1}, 0
+	g.net.addEntity(&netEntity{eid: 5, kind: 120, pos: vec3{0.5, 4, 2.2}})
+	g.useBlock()
+	if ps := drain(t, ch); len(ps) != 2 {
+		t.Fatalf("a villager: %d packets, want just the interaction: it trades and the rod stays", len(ps))
 	}
 }
 
