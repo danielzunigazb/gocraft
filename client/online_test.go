@@ -121,7 +121,7 @@ func TestOnlineModeHandshake(t *testing.T) {
 	g.acct.stored = &auth.Stored{RefreshToken: "r", UUID: "069a79f444e94726a5befca90e38aaf5", Name: "Notch"}
 	g.acct.session = &auth.Session{AccessToken: "mc-access", Expires: time.Now().Add(time.Hour), UUID: "069a79f444e94726a5befca90e38aaf5", Name: "Notch"}
 	g.acct.use = true
-	if err := g.connect(l.Addr().String(), "000danielz"); err != nil {
+	if err := g.connect(l.Addr().String(), "Player"); err != nil {
 		t.Fatal(err)
 	}
 	defer g.leaveServer()

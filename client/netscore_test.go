@@ -105,7 +105,7 @@ func TestSidebarOrderAndLimit(t *testing.T) {
 // Teams give an entry its prefix and suffix, and a colour gives its members a sidebar of their own.
 func TestTeamsFormatNamesAndPickTheSidebar(t *testing.T) {
 	g, c := windowGame(t)
-	c.name = "000danielz"
+	c.name = "Player"
 	apply := func(w *proto.Writer) { decodeFrame(t, w, nil)(g) }
 	apply(teamPacket("t1", 0, "§c[ADMIN] ", " §7*", -1, "Herobrine"))
 	if got := g.net.sb.format("Herobrine"); got != "§c[ADMIN] Herobrine §7*" {
@@ -124,15 +124,15 @@ func TestTeamsFormatNamesAndPickTheSidebar(t *testing.T) {
 	apply(objPacket("red", 0, "Equipo rojo"))
 	apply(displayPacket(1, "common"))
 	apply(displayPacket(3+12, "red")) // chat colour 12 is red
-	if o := g.net.sb.sidebarObjective("000danielz"); o.name != "common" {
+	if o := g.net.sb.sidebarObjective("Player"); o.name != "common" {
 		t.Fatalf("a player with no team sees %q", o.name)
 	}
-	apply(teamPacket("reds", 0, "§c", "", 12, "000danielz"))
-	if o := g.net.sb.sidebarObjective("000danielz"); o.name != "red" {
+	apply(teamPacket("reds", 0, "§c", "", 12, "Player"))
+	if o := g.net.sb.sidebarObjective("Player"); o.name != "red" {
 		t.Fatalf("a red player sees %q, want their team's sidebar", o.name)
 	}
 	apply(teamPacket("reds", 1, "", "", 0))
-	if o := g.net.sb.sidebarObjective("000danielz"); o.name != "common" {
+	if o := g.net.sb.sidebarObjective("Player"); o.name != "common" {
 		t.Fatalf("after the team went, %q", o.name)
 	}
 }
