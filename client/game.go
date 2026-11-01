@@ -645,6 +645,7 @@ func (g *game) draw() {
 	g.drawTags(&mvp, w, h)
 	g.drawHUD(w, h)
 	g.drawSidebar(w, h)
+	g.drawBossBar(w, h)
 	g.drawChat(w, h)
 	g.drawTabList(w, h)
 	g.drawTitles(w, h)
@@ -693,6 +694,9 @@ func (g *game) loop() error {
 		case "netitems":
 			g.netDemo(false)
 			g.itemsDemo()
+		case "netboss":
+			g.netDemo(false)
+			g.net.addEntity(&netEntity{eid: 90, kind: mobWither, pos: vec3{0, 30, 20}, name: legacyRuns("§d§lEvento de Halloween §7- §e2:35", defaultStyle), health: 210, healthSet: true})
 		case "netmobs":
 			g.netDemo(false)
 			g.mobsDemo()

@@ -32,6 +32,7 @@ type blockEntity struct {
 	// Furnace state, as TileEntityFurnace keeps it, in ticks.
 	burn, burnTotal, cook, cookTotal int
 	lid                              float32 // 0 closed .. 1 open, for the picture of a chest
+	viewers                          int     // a server's chest: how many players have it open (Block Action 1)
 }
 
 type beState struct {

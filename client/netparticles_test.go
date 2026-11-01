@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"gocraft/proto"
+	"gocraft/world"
 )
 
 func particlePacket(id int32, far bool, at, off vec3, speed float32, count int32, args ...int32) *proto.Writer {
@@ -181,4 +182,45 @@ func TestCritAnimationSparks(t *testing.T) {
 			t.Fatalf("a magic spark: tile %d colour %v", p.tile, p.rgb)
 		}
 	}
+}
+
+// A chest a server says is open has its lid lifted until it says it closed; a note block puffs a note.
+func TestBlockActions(t *testing.T) {
+	g, _, apply := mobGame(t)
+	g.feet = vec3{0.5, 4, 0.5}
+	g.world.SetBlock(2, 4, 2, idChest<<4|2)
+	g.meshes[world.ChunkPos{X: 0, Z: 0}] = &chunkMesh{} // the column is on screen
+	act := func(x, y, z int32, id, param byte, blk int32) {
+		w := newPacket(0x24)
+		w.Long(packPos(x, y, z))
+		w.Byte(id)
+		w.Byte(param)
+		w.VarInt(blk)
+		apply(w)
+	}
+	act(2, 4, 2, 1, 2, idChest)
+	if be := g.beAt([3]int32{2, 4, 2}, false); be == nil || be.viewers != 2 {
+		t.Fatalf("chest %+v", be)
+	}
+	groups := map[string][]vertex{}
+	g.camPos = vec3{2, 6, -2}
+	for i := 0; i < 40; i++ {
+		g.emitChests(groups)
+	}
+	if be := g.beAt([3]int32{2, 4, 2}, false); be.lid < 0.99 {
+		t.Fatalf("the lid is at %v after many frames, want open", be.lid)
+	}
+	act(2, 4, 2, 1, 0, idChest)
+	for i := 0; i < 60; i++ {
+		g.emitChests(groups)
+	}
+	if be := g.beAt([3]int32{2, 4, 2}, false); be.lid > 0.01 {
+		t.Fatalf("the lid is at %v after it closed", be.lid)
+	}
+	act(3, 4, 2, 0, 12, 25)
+	if countKind(g.particles(), pNote) != 1 {
+		t.Fatalf("%d notes", countKind(g.particles(), pNote))
+	}
+	act(3, 4, 2, 9, 12, 25) // an instrument that does not exist: nothing
+	act(5, 4, 5, 0, 1, 33)  // a piston: nothing to do here
 }

@@ -27,6 +27,8 @@ type netEntity struct {
 	small        bool
 	marker       bool
 	mob          *netMob // a mob gocraft has a model for
+	health       float32 // metadata 6, for what shows a health bar
+	healthSet    bool
 }
 
 const (
@@ -142,6 +144,9 @@ func (e *netEntity) apply(m map[int]any) {
 		if v, ok := m[10].(int); ok {
 			e.small, e.marker = v&1 != 0, v&16 != 0
 		}
+	}
+	if v, ok := m[6].(float32); ok {
+		e.health, e.healthSet = v, true
 	}
 	if e.mob != nil {
 		e.mob.apply(m)

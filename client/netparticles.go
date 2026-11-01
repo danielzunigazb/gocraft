@@ -557,3 +557,27 @@ func (g *game) netEffect(effect int32, x, y, z int32, data int32) {
 		}
 	}
 }
+
+// noteInstruments are the sounds of a note block, by the instrument the block action names.
+var noteInstruments = [5]string{"harp", "bd", "snare", "hat", "bassattack"}
+
+// netBlockAction is Block Action (WorldClient.addBlockEvent): the block says what it does. A chest has its lid
+// lifted for as long as players have it open (action 1, the number of them), a note block plays its note with
+// a puff of a note over it. Pistons and the rest need no more than the block changes that come with them.
+func (g *game) netBlockAction(p [3]int32, id, param byte, blk int32) {
+	switch blk {
+	case idChest, idTrappedChest:
+		if id == 1 {
+			if be := g.beAt(p, true); be != nil {
+				be.viewers = int(param)
+			}
+		}
+	case 25: // note block
+		if int(id) >= len(noteInstruments) {
+			return
+		}
+		pitch := float32(math.Pow(2, float64(int(param)-12)/12))
+		g.sound("note."+noteInstruments[id], centre(p[0], p[1], p[2]), 3, pitch)
+		g.spawnFX(ptNote, false, vec3{float64(p[0]) + 0.5, float64(p[1]) + 1.2, float64(p[2]) + 0.5}, vec3{float64(param) / 24, 0, 0}, nil)
+	}
+}

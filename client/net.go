@@ -843,6 +843,14 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 			return nil
 		}
 		return func(g *game) { g.sel = slot } // the next tick tells the server back, as syncCurrentPlayItem does
+	case 0x24: // block action: a chest's lid, a note block's note
+		x, y, z := proto.UnpackPos(r.Long())
+		id, param := r.Byte(), r.Byte()
+		blk := r.VarInt()
+		if r.Err() != nil {
+			return nil
+		}
+		return func(g *game) { g.netBlockAction([3]int32{x, y, z}, id, param, blk) }
 	case 0x33: // update sign: its four lines
 		x, y, z := proto.UnpackPos(r.Long())
 		var lines [4]string

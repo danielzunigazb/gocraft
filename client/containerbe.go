@@ -294,6 +294,9 @@ func (g *game) emitChests(groups map[string][]vertex) {
 		if g.screen == screenContainer && g.cont.kind == contChest && (g.cont.be == be || g.cont.be2 == be) && be != nil {
 			target = 1
 		}
+		if be != nil && be.viewers > 0 { // someone has it open on a server
+			target = 1
+		}
 		angle := float32(0)
 		if be != nil {
 			be.lid += (target - be.lid) * 0.2

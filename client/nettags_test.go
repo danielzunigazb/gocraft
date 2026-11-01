@@ -3,6 +3,8 @@ package client
 import (
 	"math"
 	"testing"
+
+	"gocraft/proto"
 )
 
 // The objective shown under names puts "score name-of-objective" under a player's name when they are within 10
@@ -52,5 +54,40 @@ func TestObjectiveTypeHearts(t *testing.T) {
 		if o := g.net.board().objectives["hp"]; o == nil || o.hearts != c.hearts {
 			t.Fatalf("%s: %+v", c.typ, o)
 		}
+	}
+}
+
+// A Wither or a Dragon the server spawned gives the boss bar: its custom name or its own, and its health over 300
+// or 200; the newest one wins; with none there is no bar.
+func TestBossBar(t *testing.T) {
+	g, _, apply := mobGame(t)
+	if _, _, ok := g.net.bossBar(); ok {
+		t.Fatal("a bar with no boss")
+	}
+	apply(spawnMobPacket(70, mobWither, 3.5, 4, 3.5, 0, 0, func(w *proto.Writer) {
+		w.Byte(3<<5 | 6) // float: health
+		w.Float(150)
+		w.Byte(4<<5 | 2) // string: custom name
+		w.String("§6§lEvento")
+	}))
+	name, frac, ok := g.net.bossBar()
+	if !ok || plainRuns(name) != "Evento" || frac != 0.5 {
+		t.Fatalf("bar %q %v %v", plainRuns(name), frac, ok)
+	}
+	apply(spawnMobPacket(71, mobEnderDragon, 9.5, 4, 3.5, 0, 0, func(w *proto.Writer) {
+		w.Byte(3<<5 | 6)
+		w.Float(50)
+	}))
+	name, frac, _ = g.net.bossBar()
+	if plainRuns(name) != "Ender Dragon" || frac != 0.25 {
+		t.Fatalf("newest boss: %q %v", plainRuns(name), frac)
+	}
+	d := newPacket(0x13)
+	d.VarInt(2)
+	d.VarInt(70)
+	d.VarInt(71)
+	apply(d)
+	if _, _, ok := g.net.bossBar(); ok {
+		t.Fatal("the bar stayed after both bosses were gone")
 	}
 }
