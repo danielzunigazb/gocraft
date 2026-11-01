@@ -18,7 +18,8 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 - [x] Cuadros (paintings): las 26 obras de EnumArt, posición, luz por cuadro y caja de clic
 - [x] Item frames: modelo del bloque, objeto con su giro y tamaño, y el mapa que lleven
 - [x] Rayos (0x2C): forma exacta de RenderLightningBolt, trueno, golpes repetidos y destello del cielo
-- [ ] Correas y monturas
+- [x] Correas (0x1B, leash 1): la cuerda de RenderLiving con su caída y el nudo (objeto 77)
+- [ ] Monturas (0x1B, leash 0) y caballos
 - [x] Cabezas (calaveras de esqueleto, wither, zombi, jugador con su skin y creeper) como bloque, por 0x35
 - [x] Spawners (0x35, acción 1): el mob gira en la jaula como MobSpawnerBaseLogic y TileEntityMobSpawnerRenderer
 - [ ] Banners (0x35, acción 6); pistones

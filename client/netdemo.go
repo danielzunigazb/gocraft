@@ -397,6 +397,33 @@ func (g *game) gearDemo() {
 	}
 }
 
+// leashDemo ties a pig and a sheep to a knot on a fence post, and a cow to a player.
+func (g *game) leashDemo() {
+	g.net.ents = nil
+	f := look(g.yaw, 0)
+	right := vec3{-f[2], 0, f[0]}
+	ground := vec3{0, math.Floor(g.feet[1]) - g.feet[1], 0}
+	face := g.yawDeg() + 180
+	knot := g.feet.add(ground).add(f.scale(5))
+	kc := vec3{math.Floor(knot[0]) + 0.5, math.Floor(knot[1]) + 1.5, math.Floor(knot[2]) + 0.5}
+	g.setBlock(int32(math.Floor(kc[0])), int32(math.Floor(kc[1])-0), int32(math.Floor(kc[2])), 85<<4) // a fence post (85)
+	g.setBlock(int32(math.Floor(kc[0])), int32(math.Floor(kc[1])-1), int32(math.Floor(kc[2])), 85<<4)
+	g.net.addEntity(&netEntity{eid: 950, obj: objLeashKnot, pos: kc, prev: kc, target: kc})
+	holder := g.feet.add(ground).add(f.scale(3)).add(right.scale(2))
+	g.net.remote[9] = &remotePlayer{eid: 9, name: "Steve", pos: holder, prev: holder, target: holder, yaw: face, tyaw: face, headYaw: face, thead: face, body: face, prevBody: face, prevYaw: face}
+	for i, d := range []struct {
+		kind   byte
+		holder int32
+		dx     float64
+	}{{90, 950, -2.5}, {91, 950, 2.2}, {92, 9, 3.5}} {
+		at := kc.add(right.scale(d.dx)).add(f.scale(-2)).sub(vec3{0, 1.5, 0})
+		e := &netEntity{eid: int32(960 + i), kind: d.kind, pos: at, prev: at, target: at, leash: d.holder}
+		e.mob = newNetMob(d.kind, at, face, 0, face)
+		e.mob.m.yaw, e.mob.m.prevYaw = face, face
+		g.net.addEntity(e)
+	}
+}
+
 // lightningDemo strikes three bolts ahead of the player, each of a different shape.
 func (g *game) lightningDemo() {
 	g.net.ents = nil

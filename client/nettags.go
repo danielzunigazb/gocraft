@@ -31,6 +31,7 @@ type netEntity struct {
 	painting     *paintingState // a painting on a wall
 	frame        *frameState    // an item frame
 	bolt         *boltState     // a lightning bolt
+	leash        int32          // the entity that holds this mob's leash (0: none)
 	health       float32        // metadata 6, for what shows a health bar
 	healthSet    bool
 	orb          int // an experience orb's value

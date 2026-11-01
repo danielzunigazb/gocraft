@@ -14,8 +14,8 @@
       "name": "Entidades",
       "weight": 16.6,
       "percent": 40,
-      "done": "física y movimiento del jugador, jugadores remotos, items, proyectiles, anzuelo, armor stands, cuadros, item frames, cabezas, 22 tipos de mob con IA básica",
-      "missing": "unos 38 tipos de entidad, la mayoría de las 80 metas de IA, minecarts, monturas"
+      "done": "física y movimiento del jugador, jugadores remotos, items, proyectiles, anzuelo, armor stands, cuadros, item frames, cabezas, 22 tipos de mob con IA básica, correas",
+      "missing": "unos 38 tipos de entidad, la mayoría de las 80 metas de IA, minecarts, monturas y caballos"
     },
     {
       "id": "client",
@@ -62,8 +62,8 @@
       "name": "Protocolo de red",
       "weight": 5.5,
       "percent": 86,
-      "done": "63 de 74 paquetes servidor→cliente y 24 de 24 cliente→servidor, compresión, login en línea y sin conexión",
-      "missing": "11 paquetes servidor→cliente, 0 cliente→servidor"
+      "done": "64 de 74 paquetes servidor→cliente y 24 de 24 cliente→servidor, compresión, login en línea y sin conexión",
+      "missing": "10 paquetes servidor→cliente, 0 cliente→servidor"
     },
     {
       "id": "world",

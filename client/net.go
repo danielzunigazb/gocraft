@@ -912,6 +912,19 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 			return nil
 		}
 		return func(g *game) { g.netBlockAction([3]int32{x, y, z}, id, param, blk) }
+	case 0x1B: // attach entity: a leash (1) from a holder, or a rider on a mount (0, which is not drawn yet)
+		eid, holder, leash := r.Int(), r.Int(), r.Byte()
+		if r.Err() != nil || leash != 1 {
+			return nil
+		}
+		return func(g *game) {
+			if e := g.net.entity(eid); e != nil {
+				if holder < 0 {
+					holder = 0 // untied
+				}
+				e.leash = holder
+			}
+		}
 	case 0x36: // open sign editor: the player is to write on this sign
 		x, y, z := proto.UnpackPos(r.Long())
 		if r.Err() != nil {
@@ -1195,6 +1208,11 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 		}
 		if kind == objItem {
 			return func(g *game) { g.netSpawnItem(eid, vec3{x, y, z}, vel, data > 0) }
+		}
+		if kind == objLeashKnot { // the block it is tied to; a knot sits in its middle
+			at := vec3{math.Floor(x) + 0.5, math.Floor(y) + 0.5, math.Floor(z) + 0.5}
+			e := &netEntity{eid: eid, obj: kind, pos: at, prev: at, target: at}
+			return func(g *game) { g.net.addEntity(e) }
 		}
 		if kind == objItemFrame { // the packet carries the block it hangs in, and the facing as its data
 			f := &frameState{hang: [3]int32{int32(math.Floor(x)), int32(math.Floor(y)), int32(math.Floor(z))}, facing: int(data) & 3}

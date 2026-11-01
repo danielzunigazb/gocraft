@@ -742,6 +742,9 @@ func (g *game) loop() error {
 			g.specialWindowDemo(kindAnvil)
 		case "netbrewing":
 			g.specialWindowDemo(kindBrewing)
+		case "netleash":
+			g.netDemo(false)
+			g.leashDemo()
 		case "netgear":
 			g.netDemo(false)
 			g.gearDemo()

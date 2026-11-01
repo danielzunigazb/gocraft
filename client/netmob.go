@@ -23,7 +23,7 @@ const (
 )
 
 // netMobTextures are the textures of the server's mobs that gocraft's own do not use.
-var netMobTextures = []string{"experience_orb", "misc/forcefield", "zombie_pigman", "skeleton/wither_skeleton", "wolf/wolf_tame", "wolf/wolf_angry", "armorstand/wood", paintingSheet, "skeleton/skeleton", "zombie/zombie", "creeper/creeper"}
+var netMobTextures = []string{"experience_orb", "misc/forcefield", "zombie_pigman", "skeleton/wither_skeleton", "wolf/wolf_tame", "wolf/wolf_angry", "armorstand/wood", paintingSheet, "skeleton/skeleton", "zombie/zombie", "creeper/creeper", "lead_knot"}
 
 // netMob is the drawn part of a server's mob: a gocraft mob that the server moves.
 type netMob struct {

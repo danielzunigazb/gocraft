@@ -27,6 +27,7 @@ func (g *game) drawMobs() {
 	g.emitSkulls(groups)
 	g.emitSpawners(groups)
 	g.emitBolts(groups)
+	g.emitLeashes(groups)
 	if len(g.mobs) == 0 && len(g.arrows) == 0 && g.perspective == 0 && (g.net == nil || len(g.net.remote) == 0 && len(g.net.ents) == 0) && len(groups) == 0 {
 		return
 	}
@@ -82,6 +83,8 @@ func (g *game) drawMobs() {
 			tex, ok = g.hud.font, true
 		case "!bolt": // lightning is drawn last, added to what is behind it
 			continue
+		case "!leash": // the rope: flat colours
+			tex, ok = g.hud.white, true
 		}
 		if !ok || len(verts) == 0 {
 			continue
