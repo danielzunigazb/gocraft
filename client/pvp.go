@@ -46,26 +46,16 @@ func (g *game) playerTarget() (*remotePlayer, float32, bool) {
 	return best, bestD, true
 }
 
-// attackEntity is the click on another player or a mob of the server: the server hears of the blow and
-// works out the damage; the client pays what is its own, the slowing of a sprint hit and the weapon's wear.
+// attackEntity is the click on another player or a mob of the server: the server hears of the blow and works
+// out everything else. The game's client does nothing more: EntityPlayer.attackTargetEntityWithCurrentItem
+// only acts when attackEntityFrom says the blow landed, and in the client's world it never does. So the
+// player keeps their stride and their sprint (the server slows its own copy of them), the hunger and the
+// weapon's wear are the server's, and a sprinting player is not told to stop and start again with each hit.
 func (g *game) attackEntity(eid int32) {
 	w := newPacket(0x02)
 	w.VarInt(eid)
 	w.VarInt(1) // attack
 	g.net.c.send(w)
-	if g.net.remote[eid] == nil {
-		return // a mob or an armor stand takes no blow on the client (attackEntityFrom is false there): only the server's
-	}
-	if g.sprinting {
-		g.vel[0], g.vel[2] = g.vel[0]*0.6, g.vel[2]*0.6
-		g.setSprinting(false)
-	}
-	g.exhaust(0.3)
-	if class, _ := toolOf(g.held()); class == "sword" {
-		g.useDurability(1)
-	} else if class != "" {
-		g.useDurability(2)
-	}
 }
 
 // sendActions tells the server when the sprint or the sword's block starts or stops.
@@ -127,10 +117,11 @@ func (g *game) sendActions() {
 	}
 }
 
-// netVelocity is the server pushing the player (knockback): the motion is replaced, in blocks a tick.
+// netVelocity is the server pushing the player (knockback): the motion is replaced, in blocks a tick, and
+// nothing else (Entity.setVelocity). The player is still on the ground until the move that follows takes
+// them off it, and so the first tick of a knockback is slowed by the ground's friction as the game's is.
 func (g *game) netVelocity(vx, vy, vz int16) {
 	g.vel = vec3{float64(vx) / 8000, float64(vy) / 8000, float64(vz) / 8000}
-	g.onGround = false
 }
 
 // netStatus is Entity Status: 2 is a hurt entity, 3 a dead one.

@@ -730,3 +730,56 @@ func TestServerPicksTheHeldSlot(t *testing.T) {
 		t.Fatal("slot 9 is not in the hotbar and should be ignored")
 	}
 }
+
+// Hitting another player on a server sends the attack and changes nothing else on the client, as in the game:
+// the sprint and the speed go on, no stop-sprint is sent, and the weapon does not wear (the server does all
+// that and says so).
+func TestHittingAPlayerLeavesTheClientAlone(t *testing.T) {
+	g, c := windowGame(t)
+	g.net.received[world.ChunkPos{X: 0, Z: 0}] = true
+	g.feet, g.prevFeet = vec3{0.5, 4, 0.5}, vec3{0.5, 4, 0.5}
+	g.pos = g.feet.add(vec3{0, eyeHeight, 0})
+	g.yaw, g.pitch = 0, 0
+	g.onGround = true
+	g.inv[0] = slot{ID: 276, N: 1, Dmg: 0} // a diamond sword
+	g.sel = 0
+	g.net.remote[9] = &remotePlayer{eid: 9, name: "Rival", pos: vec3{0.5, 4, 2.2}, prev: vec3{0.5, 4, 2.2}, target: vec3{0.5, 4, 2.2}}
+	g.sprinting, g.vel = true, vec3{0, 0, 0.28}
+	g.net.sentSprint = true
+	hunger := g.exhaustion
+	drain(t, c)
+	if !g.attackClick() {
+		t.Fatal("the click did not reach the player in front")
+	}
+	if !g.sprinting || g.vel[2] != 0.28 || g.inv[0].Dmg != 0 || g.exhaustion != hunger {
+		t.Fatalf("after the blow: sprinting %v vel %v wear %d hunger %v", g.sprinting, g.vel, g.inv[0].Dmg, g.exhaustion)
+	}
+	g.sendActions()
+	for _, p := range drain(t, c) {
+		if p.id == 0x0B {
+			t.Fatal("an entity action went out because of a blow: the client stopped sprinting")
+		}
+	}
+}
+
+// A knockback replaces the motion and nothing more: the player is still on the ground for the tick it moves
+// in, so the ground's friction slows it, and it does not slide as far as it would from the air.
+func TestKnockbackKeepsTheGroundForItsFirstTick(t *testing.T) {
+	g := standing(t)
+	g.netVelocity(4000, 2880, 0) // 0.5 along x, 0.36 up
+	if !g.onGround {
+		t.Fatal("a velocity packet took the player off the ground")
+	}
+	if g.vel[0] != 0.5 || g.vel[1] != 0.36 {
+		t.Fatalf("velocity %v", g.vel)
+	}
+	g.tick(input{})
+	ground := g.vel[0]
+	air := standing(t)
+	air.netVelocity(4000, 2880, 0)
+	air.onGround = false
+	air.tick(input{})
+	if ground >= air.vel[0] {
+		t.Fatalf("after one tick %v on the ground against %v from the air: the ground must slow it more", ground, air.vel[0])
+	}
+}

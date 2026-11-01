@@ -65,7 +65,7 @@ func TestHittingAPlayerHurtsAndPushesThem(t *testing.T) {
 	pumpUntil(t, "the flinch", func() bool { return bob().hurt > 0 }, a, b)
 }
 
-func TestSprintHitSlowsTheAttacker(t *testing.T) {
+func TestSprintHitKnocksTheTargetBackFurther(t *testing.T) {
 	a, b, _ := fighters(t)
 	a.inv[0], a.sel = slot{ID: 267, N: 1}, 0 // an iron sword
 	a.sprinting = true
@@ -75,8 +75,8 @@ func TestSprintHitSlowsTheAttacker(t *testing.T) {
 	if !a.attackClick() {
 		t.Fatal("no hit")
 	}
-	if a.sprinting || !near(a.vel[2], 0.18, 1e-4) {
-		t.Fatalf("the attacker's sprint %v, velocity %v: want the sprint ended and the motion at 60%%", a.sprinting, a.vel)
+	if !a.sprinting || !near(a.vel[2], 0.3, 1e-9) { // the client does not slow itself: the server does that to its own copy
+		t.Fatalf("the attacker's sprint %v, velocity %v: want it unchanged", a.sprinting, a.vel)
 	}
 	pumpUntil(t, "a sword's blow", func() bool { return b.health == 13 }, a, b) // 1+4+2 = 7
 	if !near(b.vel[2], 0.9, 1e-3) {                                             // 0.4 away from Alice, 0.5 more for the sprint
