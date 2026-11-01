@@ -765,6 +765,12 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 				} else {
 					p.armor[sl-1], p.armorX[sl-1] = it, ex
 				}
+			} else if e := g.net.entity(eid); e != nil && e.stand != nil && sl >= 0 && sl <= 4 {
+				if sl == 0 {
+					e.stand.held, e.stand.heldX = it, ex
+				} else {
+					e.stand.armor[sl-1], e.stand.armorX[sl-1] = it, ex
+				}
 			}
 		}
 	case 0x12: // entity velocity
@@ -813,9 +819,7 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 			if p := g.net.remote[eid]; p != nil {
 				p.moveTo(vec3{x, y, z}, yaw, pitch)
 			} else if e := g.net.entity(eid); e != nil {
-				if e.mob != nil {
-					e.mob.look(yaw, pitch)
-				}
+				e.look(yaw, pitch)
 				e.moveTo(vec3{x, y, z})
 			} else if it := g.net.netItem(eid); it != nil {
 				g.moveNetItem(it, vec3{x, y, z})
@@ -1023,12 +1027,14 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 					ty, tp = yaw, pitch
 				}
 				p.moveTo(t, ty, tp)
-			} else if e := g.net.entity(eid); e != nil && (hasMove || e.mob != nil) {
+			} else if e := g.net.entity(eid); e != nil && (hasMove || e.mob != nil || hasLook && e.stand != nil) {
 				if e.mob != nil { // the turn goes with the move; a move alone keeps the way it faces now
 					if !hasLook {
 						yaw, pitch = e.mob.yaw, e.mob.pitch
 					}
 					e.mob.look(yaw, pitch)
+				} else if hasLook {
+					e.look(yaw, pitch)
 				}
 				e.moveTo(e.target.add(vec3{float64(dx), float64(dy), float64(dz)}))
 			} else if it := g.net.netItem(eid); it != nil && hasMove {
@@ -1135,6 +1141,9 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 		}
 		e := &netEntity{eid: eid, kind: kind, pos: vec3{x, y, z}, prev: vec3{x, y, z}, target: vec3{x, y, z}}
 		e.mob = newNetMob(kind, e.pos, yaw, pitch, head)
+		if kind == mobArmorStand {
+			e.stand = newStand(yaw)
+		}
 		e.apply(meta)
 		return func(g *game) { g.net.addEntity(e) }
 	case 0x0E: // spawn object: a fishing hook, an arrow, an item

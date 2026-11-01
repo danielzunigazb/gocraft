@@ -43,6 +43,12 @@ func heldMatrix(rots []rot, body float32, sneaking, slim bool, display mat4) mat
 
 // emitHeld adds the item in a player's hand to the groups.
 func (g *game) emitHeld(groups map[string][]vertex, it slot, rots []rot, pos vec3, body float32, sneaking, slim, using bool, useTicks int, hookOut bool, light uint8, far bool) {
+	g.emitHeldWith(groups, it, func(display mat4) mat4 { return heldMatrix(rots, body, sneaking, slim, display) }, pos, using, useTicks, hookOut, light, far)
+}
+
+// emitHeldWith is emitHeld for any hand: place puts the item's own space, turned by its display transform,
+// into the world around the entity at pos.
+func (g *game) emitHeldWith(groups map[string][]vertex, it slot, place func(display mat4) mat4, pos vec3, using bool, useTicks int, hookOut bool, light uint8, far bool) {
 	if it.empty() {
 		return
 	}
@@ -60,7 +66,7 @@ func (g *game) emitHeld(groups map[string][]vertex, it slot, rots []rot, pos vec
 		if len(vs) == 0 || len(vs[0].quads) == 0 {
 			return
 		}
-		m := heldMatrix(rots, body, sneaking, slim, ident())
+		m := place(ident())
 		if flatBlocks[it.ID] { // a plant, a torch: its picture, with the display of the item model of the block
 			q0 := vs[0].quads[0]
 			tint := white
@@ -99,7 +105,7 @@ func (g *game) emitHeld(groups map[string][]vertex, it slot, rots []rot, pos vec
 	if !found { // an item model with no display of its own: a flat item held at the hand
 		x = itemXform{tr: [3]float32{0, 3, 1}, sc: [3]float32{0.55, 0.55, 0.55}}
 	}
-	m := heldMatrix(rots, body, sneaking, slim, x.matrix())
+	m := place(x.matrix())
 	quads := g.hand.sprite(g.res.items, tile)
 	if far && len(quads) > 2 { // too far to see the item's thickness: only its two faces
 		quads = quads[:2]

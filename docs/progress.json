@@ -7,14 +7,14 @@
       "weight": 18.3,
       "percent": 50,
       "done": "mallado por columnas, luz suave, modelos de bloque, 20 modelos de mobs, partículas, cielo, nombres y carteles",
-      "missing": "renderers de caballo, ghast, guardián, wither y dragón; mapas; cuadros; armor stands"
+      "missing": "renderers de caballo, ghast, guardián, wither y dragón; mapas; cuadros"
     },
     {
       "id": "entities",
       "name": "Entidades",
       "weight": 16.6,
       "percent": 35,
-      "done": "física y movimiento del jugador, jugadores remotos, items, proyectiles, anzuelo, 20 tipos de mob con IA básica",
+      "done": "física y movimiento del jugador, jugadores remotos, items, proyectiles, anzuelo, armor stands, 20 tipos de mob con IA básica",
       "missing": "unos 38 tipos de entidad, la mayoría de las 80 metas de IA, minecarts, monturas"
     },
     {

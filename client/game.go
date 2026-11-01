@@ -719,6 +719,9 @@ func (g *game) loop() error {
 		case "netmobs":
 			g.netDemo(false)
 			g.mobsDemo()
+		case "netstands":
+			g.netDemo(false)
+			g.standsDemo()
 		case "netparticles":
 			g.netDemo(false)
 			g.particlesDemo()

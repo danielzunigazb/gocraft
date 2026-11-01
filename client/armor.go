@@ -55,10 +55,39 @@ var armorMasks = func() (m [4][6]bool) {
 	return
 }()
 
+// armorScale says how the armour is scaled about the entity's feet: one scale for all its parts, or (split) the
+// head apart from the rest, as ModelBiped.render does for a child. dy shifts the origin to make up the
+// translation that comes with a scale.
+type armorScale struct {
+	split          bool
+	body, head     float64
+	bodyDY, headDY float64
+}
+
 // emitArmor adds the armour a player wears, on top of their posed model. pieces go boots to helmet. The
 // player's twelve poses give the armour model's six.
 func emitArmor(groups map[string][]vertex, pieces [4]slot, extras [4]itemExtra, rots []rot, pos vec3, yaw, tilt float32, tint [3]uint8, light uint8, scale float64) {
+	emitArmorScaled(groups, pieces, extras, rots, pos, yaw, tilt, tint, light, armorScale{body: scale})
+}
+
+func emitArmorScaled(groups map[string][]vertex, pieces [4]slot, extras [4]itemExtra, rots []rot, pos vec3, yaw, tilt float32, tint [3]uint8, light uint8, sc armorScale) {
 	ar := [6]rot{rots[pHead], rots[pBody], rots[pRArm], rots[pLArm], rots[pRLeg], rots[pLLeg]}
+	emit := func(key string, model *mmodel, mask []bool, t [3]uint8) {
+		if !sc.split {
+			groups[key] = emitModelScaled(groups[key], model, ar[:], mask, pos, yaw, tilt, t, light, sc.body)
+			return
+		}
+		var head, rest [6]bool
+		for i, on := range mask {
+			if i == 0 {
+				head[i] = on
+			} else {
+				rest[i] = on
+			}
+		}
+		groups[key] = emitModelScaled(groups[key], model, ar[:], head[:], pos.add(vec3{0, sc.headDY, 0}), yaw, tilt, t, light, sc.head)
+		groups[key] = emitModelScaled(groups[key], model, ar[:], rest[:], pos.add(vec3{0, sc.bodyDY, 0}), yaw, tilt, t, light, sc.body)
+	}
 	for slotN, it := range pieces {
 		mat, _, ok := armorOf(it.ID)
 		if !ok || it.empty() {
@@ -74,10 +103,9 @@ func emitArmor(groups map[string][]vertex, pieces [4]slot, extras [4]itemExtra, 
 			c := leatherColour(extras[slotN])
 			t = [3]uint8{uint8(int(c[0]) * int(tint[0]) / 255), uint8(int(c[1]) * int(tint[1]) / 255), uint8(int(c[2]) * int(tint[2]) / 255)}
 		}
-		groups[key] = emitModelScaled(groups[key], model, ar[:], mask, pos, yaw, tilt, t, light, scale)
+		emit(key, model, mask, t)
 		if mat == 0 {
-			ov := key + "_overlay"
-			groups[ov] = emitModelScaled(groups[ov], model, ar[:], mask, pos, yaw, tilt, tint, light, scale)
+			emit(key+"_overlay", model, mask, tint)
 		}
 	}
 }

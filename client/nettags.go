@@ -26,8 +26,9 @@ type netEntity struct {
 	invisible    bool
 	small        bool
 	marker       bool
-	mob          *netMob // a mob gocraft has a model for
-	health       float32 // metadata 6, for what shows a health bar
+	mob          *netMob     // a mob gocraft has a model for
+	stand        *standState // an armor stand's pose, yaw and what it wears
+	health       float32     // metadata 6, for what shows a health bar
 	healthSet    bool
 	orb          int // an experience orb's value
 	age          int // ticks since it appeared: an orb's colour pulses with it
@@ -78,6 +79,14 @@ func (g *game) tickEnts() {
 			tickNetMob(e)
 			continue
 		}
+		if e.stand != nil {
+			e.stand.tick(e.inc)
+			if e.inc > 0 {
+				e.pos = e.pos.add(e.target.sub(e.pos).scale(1 / float64(e.inc)))
+				e.inc--
+			}
+			continue
+		}
 		if isProjectile(e.obj) {
 			g.tickProjectile(e)
 			e.target = e.pos // the server's next position is relative to where this one is
@@ -123,10 +132,8 @@ func readMeta(r *proto.Reader) (map[int]any, bool) {
 			r.Int()
 			r.Int()
 			r.Int()
-		case 7:
-			r.Float()
-			r.Float()
-			r.Float()
+		case 7: // rotations (an armor stand's pose)
+			m[idx] = [3]float32{r.Float(), r.Float(), r.Float()}
 		}
 	}
 	return m, false
@@ -146,6 +153,9 @@ func (e *netEntity) apply(m map[int]any) {
 	if e.kind == mobArmorStand {
 		if v, ok := m[10].(int); ok {
 			e.small, e.marker = v&1 != 0, v&16 != 0
+		}
+		if e.stand != nil {
+			e.stand.apply(m)
 		}
 	}
 	if v, ok := m[6].(float32); ok {

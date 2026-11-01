@@ -58,7 +58,7 @@ las originales. Los paquetes se leen de la carpeta indicada con `-packs` y se ac
 | ![](docs/img/players.png)<br>Jugadores con armadura, objetos en mano y caña | ![](docs/img/particles.png)<br>Partículas y efectos de servidor |
 | ![](docs/img/items.png)<br>Items en el suelo y orbes de experiencia | ![](docs/img/signs.png)<br>Carteles con texto y color |
 | ![](docs/img/cracks.png)<br>Diez estados de picado | ![](docs/img/bossbar.png)<br>Barra de jefe y *scoreboard* lateral |
-| ![](docs/img/tablist.png)<br>Lista de jugadores con cabecera y pie | |
+| ![](docs/img/tablist.png)<br>Lista de jugadores con cabecera y pie | ![](docs/img/armorstands.png)<br>Armor stands con pose, armadura y objetos |
 
 ## Progreso de la reimplementación
 
@@ -68,8 +68,8 @@ las originales. Los paquetes se leen de la carpeta indicada con `-packs` y se ac
 
 | Área | Peso | Avance | | Hecho | Pendiente |
 |---|--:|--:|---|---|---|
-| Render | 18.3 % | 50 % | `█████░░░░░` | mallado por columnas, luz suave, modelos de bloque, 20 modelos de mobs, partículas, cielo, nombres y carteles | renderers de caballo, ghast, guardián, wither y dragón; mapas; cuadros; armor stands |
-| Entidades | 16.6 % | 35 % | `████░░░░░░` | física y movimiento del jugador, jugadores remotos, items, proyectiles, anzuelo, 20 tipos de mob con IA básica | unos 38 tipos de entidad, la mayoría de las 80 metas de IA, minecarts, monturas |
+| Render | 18.3 % | 50 % | `█████░░░░░` | mallado por columnas, luz suave, modelos de bloque, 20 modelos de mobs, partículas, cielo, nombres y carteles | renderers de caballo, ghast, guardián, wither y dragón; mapas; cuadros |
+| Entidades | 16.6 % | 35 % | `████░░░░░░` | física y movimiento del jugador, jugadores remotos, items, proyectiles, anzuelo, armor stands, 20 tipos de mob con IA básica | unos 38 tipos de entidad, la mayoría de las 80 metas de IA, minecarts, monturas |
 | Cliente (interfaz, opciones, sonido) | 15.2 % | 50 % | `█████░░░░░` | HUD, chat con estilos, menús, inventario, opciones, sonido, paquetes de recursos, mundos guardados | inventario creativo, editor de carteles, libros, estadísticas |
 | Generación de mundo | 13.6 % | 55 % | `██████░░░░` | biomas exactos, terreno al 99.9 %, cuevas, barrancos, nether, end, árboles, minerales, lagos | aldeas, fortalezas, minas, templos, monumentos, botín de mazmorras, mesas de arcilla y árboles gigantes |
 | Bloques y entidades-bloque | 12.2 % | 25 % | `██░░░░░░░░` | colisiones, dureza y herramientas, cofres, hornos, carteles, notas, apertura de tapas | flujo de fluidos, cultivos, fuego, redstone, pistones, ticks aleatorios |
@@ -238,7 +238,7 @@ Variables de entorno: `GOCRAFT_BRAND` (identificador anunciado al servidor; por 
 xvfb-run -a ./gocraft -demo -screen netmobs -look 0,18 -screenshot /tmp/mobs.png
 ```
 
-Escenas: `netmobs`, `netfish`, `netparticles`, `netitems`, `netboss`, `netborder`, `netlist`, `netchat`, `signs`,
+Escenas: `netmobs`, `netstands`, `netfish`, `netparticles`, `netitems`, `netboss`, `netborder`, `netlist`, `netchat`, `signs`,
 `cracks`, `drag`, `survival`, `inventory`, `title`. Las `net*` requieren `-demo`.
 
 ## Limitaciones conocidas

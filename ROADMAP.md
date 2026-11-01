@@ -17,7 +17,9 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 - [x] Barra de jefe (Wither o Dragón falsos), tapas de cofre, notas de note block
 - [ ] Cuadros e item frames, rayos, correas y monturas
 - [ ] Cabezas, banners y spawners (0x35); pistones
-- [ ] Armor stands visibles, equipo de los mobs, cabeza grande de los bebés
+- [x] Armor stands visibles: modelo exacto, pose, brazos, plato, pequeños, armadura y objeto en la mano
+- [ ] Cabezas y bloques sobre la cabeza de un armor stand (calaveras con skin)
+- [ ] Equipo de los mobs, cabeza grande de los bebés
 - [ ] Modelos: caballo, ocelote, ghast, guardián, magma cube, snowman
 - [x] Borde del mundo (0x44), dibujado con mezcla alfa normal (la aditiva de vanilla dio colores erróneos en headless)
 - [ ] Mapas (0x34), remolino de poción lanzada

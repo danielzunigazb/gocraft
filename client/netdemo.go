@@ -203,6 +203,38 @@ func (g *game) mobsDemo() {
 	}
 }
 
+// standsDemo lines up armor stands as servers use them: a bare one, one with arms and a sword, a posed one in
+// iron armour, a small one in diamond, a leather-clad one and an invisible one that only shows its armour.
+func (g *game) standsDemo() {
+	g.net.ents = nil
+	f := look(g.yaw, 0)
+	right := vec3{-f[2], 0, f[0]}
+	ground := vec3{0, math.Floor(g.feet[1]) - g.feet[1], 0}
+	face := g.yawDeg() + 180 // towards the camera
+	iron := [4]slot{{ID: 309, N: 1}, {ID: 308, N: 1}, {ID: 307, N: 1}, {ID: 306, N: 1}}
+	diamond := [4]slot{{ID: 313, N: 1}, {ID: 312, N: 1}, {ID: 311, N: 1}, {ID: 310, N: 1}}
+	gold := [4]slot{{ID: 317, N: 1}, {ID: 316, N: 1}, {ID: 315, N: 1}, {ID: 314, N: 1}}
+	for i, d := range []struct {
+		meta  map[int]any
+		held  slot
+		armor [4]slot
+	}{
+		{nil, slot{}, [4]slot{}},
+		{map[int]any{10: 4}, slot{ID: 276, N: 1}, [4]slot{}},
+		{map[int]any{10: 4 | 8, 11: [3]float32{-15, 30, 0}, 14: [3]float32{-70, 0, 0}, 13: [3]float32{10, 0, -30}, 15: [3]float32{-20, 0, 0}, 16: [3]float32{20, 0, 0}}, slot{ID: 261, N: 1}, iron},
+		{map[int]any{10: 1 | 4}, slot{ID: 346, N: 1}, diamond},
+		{map[int]any{10: 4}, slot{ID: 322, N: 1}, [4]slot{{ID: 301, N: 1}, {ID: 300, N: 1}, {ID: 299, N: 1}, {ID: 298, N: 1}}},
+		{map[int]any{0: 0x20, 10: 4}, slot{ID: 264, N: 1}, gold},
+	} {
+		at := g.feet.add(ground).add(f.scale(4)).add(right.scale(float64(i)*1.2 - 3))
+		e := &netEntity{eid: int32(400 + i), kind: mobArmorStand, pos: at, prev: at, target: at}
+		e.stand = newStand(face)
+		e.apply(d.meta)
+		e.stand.held, e.stand.armor = d.held, d.armor
+		g.net.addEntity(e)
+	}
+}
+
 // particlesDemo shows what servers send most: a ring of coloured dust, hearts, notes, potion swirls, green
 // sparkles, flames, portal specks, crits and a big explosion puff, a few ticks old.
 func (g *game) particlesDemo() {
