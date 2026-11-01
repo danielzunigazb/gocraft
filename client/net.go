@@ -1162,6 +1162,12 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 		if kind == objItem {
 			return func(g *game) { g.netSpawnItem(eid, vec3{x, y, z}, vel, data > 0) }
 		}
+		if kind == objItemFrame { // the packet carries the block it hangs in, and the facing as its data
+			f := &frameState{hang: [3]int32{int32(math.Floor(x)), int32(math.Floor(y)), int32(math.Floor(z))}, facing: int(data) & 3}
+			c := f.center()
+			e := &netEntity{eid: eid, obj: kind, frame: f, pos: c, prev: c, target: c}
+			return func(g *game) { g.net.addEntity(e) }
+		}
 		e := &netEntity{eid: eid, obj: kind, owner: data, pos: vec3{x, y, z}, prev: vec3{x, y, z}, target: vec3{x, y, z}, vel: vel}
 		return func(g *game) { g.net.addEntity(e) }
 	case 0x10: // spawn painting

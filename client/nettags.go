@@ -29,6 +29,7 @@ type netEntity struct {
 	mob          *netMob        // a mob gocraft has a model for
 	stand        *standState    // an armor stand's pose, yaw and what it wears
 	painting     *paintingState // a painting on a wall
+	frame        *frameState    // an item frame
 	health       float32        // metadata 6, for what shows a health bar
 	healthSet    bool
 	orb          int // an experience orb's value
@@ -159,6 +160,9 @@ func (e *netEntity) apply(m map[int]any) {
 			e.stand.apply(m)
 		}
 	}
+	if e.frame != nil {
+		e.frame.apply(m)
+	}
 	if v, ok := m[6].(float32); ok {
 		e.health, e.healthSet = v, true
 	}
@@ -171,6 +175,9 @@ func (e *netEntity) apply(m map[int]any) {
 func (e *netEntity) box() aabb {
 	if e.painting != nil {
 		return e.painting.box(e.pos)
+	}
+	if e.frame != nil {
+		return e.frame.box(e.pos)
 	}
 	hw := 0.3
 	if e.mob != nil {

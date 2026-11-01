@@ -43,12 +43,13 @@ func heldMatrix(rots []rot, body float32, sneaking, slim bool, display mat4) mat
 
 // emitHeld adds the item in a player's hand to the groups.
 func (g *game) emitHeld(groups map[string][]vertex, it slot, rots []rot, pos vec3, body float32, sneaking, slim, using bool, useTicks int, hookOut bool, light uint8, far bool) {
-	g.emitHeldWith(groups, it, func(display mat4) mat4 { return heldMatrix(rots, body, sneaking, slim, display) }, pos, using, useTicks, hookOut, light, far)
+	g.emitHeldWith(groups, it, func(display mat4) mat4 { return heldMatrix(rots, body, sneaking, slim, display) }, pos, using, useTicks, hookOut, light, far, false)
 }
 
 // emitHeldWith is emitHeld for any hand: place puts the item's own space, turned by its display transform,
-// into the world around the entity at pos.
-func (g *game) emitHeldWith(groups map[string][]vertex, it slot, place func(display mat4) mat4, pos vec3, using bool, useTicks int, hookOut bool, light uint8, far bool) {
+// into the world around the entity at pos. fixed asks for the "fixed" display (an item frame's), which for
+// every model of 1.8.9 is the identity, not the third person one.
+func (g *game) emitHeldWith(groups map[string][]vertex, it slot, place func(display mat4) mat4, pos vec3, using bool, useTicks int, hookOut bool, light uint8, far, fixed bool) {
 	if it.empty() {
 		return
 	}
@@ -104,6 +105,9 @@ func (g *game) emitHeldWith(groups map[string][]vertex, it slot, place func(disp
 	x, found := g.res.itemThird[name]
 	if !found { // an item model with no display of its own: a flat item held at the hand
 		x = itemXform{tr: [3]float32{0, 3, 1}, sc: [3]float32{0.55, 0.55, 0.55}}
+	}
+	if fixed {
+		x = itemXform{sc: [3]float32{1, 1, 1}}
 	}
 	m := place(x.matrix())
 	quads := g.hand.sprite(g.res.items, tile)

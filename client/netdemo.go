@@ -256,6 +256,27 @@ func (g *game) paintingsDemo() {
 	}
 }
 
+// framesDemo hangs item frames on a stone wall: empty, with tools, a block, a torch, armour, a map, and turned by
+// every eighth.
+func (g *game) framesDemo() {
+	g.net.ents = nil
+	f := look(g.yaw, 0)
+	base := g.feet.add(f.scale(5))
+	bx, by, bz := int32(math.Floor(base[0])), int32(math.Floor(g.feet[1])), int32(math.Floor(base[2]))
+	for x := bx - 7; x <= bx+7; x++ {
+		for y := by; y < by+5; y++ {
+			g.setBlock(x, y, bz+1, 1<<4)
+		}
+	}
+	items := []slot{{}, {ID: 276, N: 1}, {ID: 261, N: 1}, {ID: 260, N: 1}, {ID: 1, N: 1}, {ID: 46, N: 1}, {ID: 50, N: 1}, {ID: 310, N: 1}, {ID: 358, N: 1}, {ID: 264, N: 1}}
+	for i, it := range items {
+		x, y := bx-6+int32(i%5)*3, by+3-int32(i/5)*2
+		fr := &frameState{hang: [3]int32{x, y, bz}, facing: 2, item: it, rot: i % 8}
+		c := fr.center()
+		g.net.addEntity(&netEntity{eid: int32(600 + i), obj: objItemFrame, frame: fr, pos: c, prev: c, target: c})
+	}
+}
+
 // particlesDemo shows what servers send most: a ring of coloured dust, hearts, notes, potion swirls, green
 // sparkles, flames, portal specks, crits and a big explosion puff, a few ticks old.
 func (g *game) particlesDemo() {

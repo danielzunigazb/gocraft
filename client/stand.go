@@ -170,7 +170,7 @@ func (g *game) emitStand(groups map[string][]vertex, e *netEntity, small bool) {
 	emitArmorScaled(groups, s.armor, s.armorX, ar[:], pos, yaw, 0, tint, l, sc)
 	if !s.held.empty() {
 		d := pos.sub(g.camPos)
-		g.emitHeldWith(groups, s.held, func(display mat4) mat4 { return standHeldMatrix(rots[sRArm], yaw, small, display) }, pos, false, 0, false, l, d.dot(d) > 24*24)
+		g.emitHeldWith(groups, s.held, func(display mat4) mat4 { return standHeldMatrix(rots[sRArm], yaw, small, display) }, pos, false, 0, false, l, d.dot(d) > 24*24, false)
 	}
 }
 

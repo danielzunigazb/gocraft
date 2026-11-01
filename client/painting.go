@@ -57,22 +57,42 @@ func half(px int) float64 {
 	return 0
 }
 
-// center is where the entity is: the middle of the picture (EntityHanging.updateBoundingBox).
-func (p *paintingState) center() vec3 {
-	f := facingStep[p.facing]
-	left := facingStep[(p.facing+3)%4] // rotateYCCW
-	x := float64(p.hang[0]) + 0.5 - f[0]*0.46875
-	z := float64(p.hang[2]) + 0.5 - f[1]*0.46875
-	return vec3{x + half(p.art.w)*left[0], float64(p.hang[1]) + 0.5 + half(p.art.h), z + half(p.art.w)*left[1]}
+// hangCenter is where a hanging entity is: the middle of its picture, w x h pixels, hung in the block hang
+// facing facing (EntityHanging.updateBoundingBox).
+func hangCenter(hang [3]int32, facing, w, h int) vec3 {
+	f := facingStep[facing]
+	left := facingStep[(facing+3)%4] // rotateYCCW
+	x := float64(hang[0]) + 0.5 - f[0]*0.46875
+	z := float64(hang[2]) + 0.5 - f[1]*0.46875
+	return vec3{x + half(w)*left[0], float64(hang[1]) + 0.5 + half(h), z + half(w)*left[1]}
 }
 
-// box is what a click hits: the picture's width and height by a thin slab.
-func (p *paintingState) box(c vec3) aabb {
-	hw, hh, hd := float64(p.art.w)/32, float64(p.art.h)/32, 1.0/32
-	if p.facing == 1 || p.facing == 3 { // facing along x: the width runs along z
+// hangBox is the box of a hanging entity centred on c: its width and height by a thin slab.
+func hangBox(c vec3, facing, w, h int) aabb {
+	hw, hh, hd := float64(w)/32, float64(h)/32, 1.0/32
+	if facing == 1 || facing == 3 { // facing along x: the width runs along z
 		hw, hd = hd, hw
 	}
 	return aabb{c.sub(vec3{hw, hh, hd}), c.add(vec3{hw, hh, hd})}
+}
+
+func (p *paintingState) center() vec3 { return hangCenter(p.hang, p.facing, p.art.w, p.art.h) }
+
+// box is what a click hits.
+func (p *paintingState) box(c vec3) aabb { return hangBox(c, p.facing, p.art.w, p.art.h) }
+
+// entityShade is the shade of a face of an entity with a normal that points (x, y, z) in the world: the top
+// full, the bottom half, the sides darker, as the entity models are given theirs.
+func entityShade(x, y, z float64) float32 {
+	switch {
+	case y > 0.5:
+		return 1
+	case y < -0.5:
+		return 0.5
+	case math.Abs(x) > math.Abs(z):
+		return 0.6
+	}
+	return 0.8
 }
 
 // parseSpawnPainting reads Spawn Painting: an entity id, the art's title, the block and the facing.
@@ -97,19 +117,7 @@ func (g *game) emitPainting(groups map[string][]vertex, e *netEntity) {
 		fx, fy, fz := float64(x)*0.0625, float64(y)*0.0625, float64(z)*0.0625
 		return float32(c[0] + fx*yc + fz*ys), float32(c[1] + fy), float32(c[2] - fx*ys + fz*yc)
 	}
-	// the shading of a face, as the entity models give theirs: the sides darker than the front
-	shadeOf := func(nx, ny, nz float64) float32 {
-		x, y, z := nx*yc+nz*ys, ny, -nx*ys+nz*yc
-		switch {
-		case y > 0.5:
-			return 1
-		case y < -0.5:
-			return 0.5
-		case math.Abs(x) > math.Abs(z):
-			return 0.6
-		}
-		return 0.8
-	}
+	shadeOf := func(nx, ny, nz float64) float32 { return entityShade(nx*yc+nz*ys, ny, -nx*ys+nz*yc) }
 	const f2, f3, f4, f5, f6 = 0.5, 0.75, 0.8125, 0.0, 0.0625
 	const f9, f11 = 0.001953125, 0.7519531
 	x0, y0 := float32(-a.w)/2, float32(-a.h)/2

@@ -44,6 +44,9 @@ func (g *game) drawMobs() {
 			if e.painting != nil && !g.offScreen(e.pos, 4) {
 				g.emitPainting(groups, e)
 			}
+			if e.frame != nil && !g.offScreen(e.pos, 2) {
+				g.emitFrame(groups, e)
+			}
 		}
 	}
 	if g.net != nil {
