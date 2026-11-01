@@ -79,6 +79,7 @@ type remotePlayer struct {
 
 // netState is what the game keeps for a connection.
 type netState struct {
+	maps           map[int32]*mapData // what Map Data said about each map
 	c              *netClient
 	received       map[world.ChunkPos]bool
 	remote         map[int32]*remotePlayer
@@ -911,6 +912,12 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 			return nil
 		}
 		return func(g *game) { g.netBlockAction([3]int32{x, y, z}, id, param, blk) }
+	case 0x34: // map data: the colours of a map, whole or a rectangle of it
+		id, scale, icons, cols, rows, x0, z0, data, ok := parseMap(r)
+		if !ok {
+			return nil
+		}
+		return func(g *game) { g.netMap(id, scale, icons, cols, rows, x0, z0, data) }
 	case 0x35: // update block entity: a skull's type, turn and owner
 		x, y, z := proto.UnpackPos(r.Long())
 		action := r.Byte()

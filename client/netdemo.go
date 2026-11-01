@@ -270,7 +270,17 @@ func (g *game) framesDemo() {
 			g.setBlock(x, y, bz+1, 1<<4)
 		}
 	}
-	items := []slot{{}, {ID: 276, N: 1}, {ID: 261, N: 1}, {ID: 260, N: 1}, {ID: 1, N: 1}, {ID: 46, N: 1}, {ID: 50, N: 1}, {ID: 310, N: 1}, {ID: 358, N: 1}, {ID: 264, N: 1}}
+	// a map of land and sea made up for the frame: bands of grass, sand, water and stone, shaded by a diagonal
+	mp := &mapData{scale: 1}
+	for z := 0; z < mapSize; z++ {
+		for x := 0; x < mapSize; x++ {
+			base := []byte{1, 2, 12, 11}[((x/16+z/16)*7+x/32)%4]
+			mp.colors[x+z*mapSize] = base*4 + byte((x+z)/32%4)
+		}
+	}
+	mp.dirty = true
+	g.net.maps = map[int32]*mapData{3: mp}
+	items := []slot{{}, {ID: 276, N: 1}, {ID: 261, N: 1}, {ID: 260, N: 1}, {ID: 1, N: 1}, {ID: 46, N: 1}, {ID: 50, N: 1}, {ID: 310, N: 1}, {ID: 358, Dmg: 3, N: 1}, {ID: 264, N: 1}}
 	for i, it := range items {
 		x, y := bx-6+int32(i%5)*3, by+3-int32(i/5)*2
 		fr := &frameState{hang: [3]int32{x, y, bz}, facing: 2, item: it, rot: i % 8}

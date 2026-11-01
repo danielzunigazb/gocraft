@@ -16,6 +16,7 @@ func (g *game) drawMobs() {
 			g.skinDone = make(chan skinResult, 32)
 		}
 		g.pumpSkins()
+		g.pumpMaps()
 	}
 	groups := g.entGroups // the same buffers every frame: nothing is allocated once they have grown
 	for k := range groups {

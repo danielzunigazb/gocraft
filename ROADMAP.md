@@ -16,7 +16,7 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 - [x] Grietas al picar, carteles, orbes de experiencia
 - [x] Barra de jefe (Wither o Dragón falsos), tapas de cofre, notas de note block
 - [x] Cuadros (paintings): las 26 obras de EnumArt, posición, luz por cuadro y caja de clic
-- [x] Item frames: modelo del bloque, objeto con su giro y tamaño (los mapas dentro del marco aún no se dibujan)
+- [x] Item frames: modelo del bloque, objeto con su giro y tamaño, y el mapa que lleven
 - [x] Rayos (0x2C): forma exacta de RenderLightningBolt, trueno, golpes repetidos y destello del cielo
 - [ ] Correas y monturas
 - [x] Cabezas (calaveras de esqueleto, wither, zombi, jugador con su skin y creeper) como bloque, por 0x35
@@ -29,7 +29,8 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 - [x] Modelos de ghast (tentáculos de Random(1660), ojos al disparar) y magma cube (láminas y núcleo)
 - [ ] Modelos: caballo, ocelote, guardián, snowman
 - [x] Borde del mundo (0x44), dibujado con mezcla alfa normal (la aditiva de vanilla dio colores erróneos en headless)
-- [ ] Mapas (0x34), remolino de poción lanzada
+- [x] Mapas (0x34): paleta MapColor, rectángulos de colores y el mapa dibujado en un item frame
+- [ ] Mapa en la mano y marcadores de los mapas; remolino de poción lanzada
 
 ## Ventanas e inventario
 - [x] Motor de clics único (modos 0-6) e inventario por servidores ajenos (⚠)

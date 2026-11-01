@@ -6,8 +6,8 @@
       "name": "Render",
       "weight": 18.3,
       "percent": 51,
-      "done": "mallado por columnas, luz suave, modelos de bloque, 22 modelos de mobs, partículas, cielo, nombres y carteles",
-      "missing": "renderers de caballo, ocelote, guardián, snowman, wither y dragón; mapas"
+      "done": "mallado por columnas, luz suave, modelos de bloque, 22 modelos de mobs, partículas, cielo, nombres y carteles, mapas en item frames",
+      "missing": "renderers de caballo, ocelote, guardián, snowman, wither y dragón; mapa en la mano"
     },
     {
       "id": "entities",
@@ -62,8 +62,8 @@
       "name": "Protocolo de red",
       "weight": 5.5,
       "percent": 80,
-      "done": "58 de 74 paquetes servidor→cliente y 22 de 24 cliente→servidor, compresión, login en línea y sin conexión",
-      "missing": "16 paquetes servidor→cliente, 2 cliente→servidor"
+      "done": "62 de 74 paquetes servidor→cliente y 23 de 24 cliente→servidor, compresión, login en línea y sin conexión",
+      "missing": "12 paquetes servidor→cliente, 1 cliente→servidor"
     },
     {
       "id": "world",

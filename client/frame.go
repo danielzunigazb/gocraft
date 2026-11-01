@@ -61,7 +61,11 @@ func (g *game) emitFrame(groups map[string][]vertex, e *netEntity) {
 		}
 	}
 	it := f.item
-	if it.empty() || it.ID == itemMap {
+	if it.ID == itemMap { // a map is drawn flat over the frame
+		g.emitMapInFrame(groups, f, l)
+		return
+	}
+	if it.empty() {
 		return
 	}
 	flat := !it.isBlock() || flatBlocks[it.ID] // RenderItemFrame turns what is not drawn as a block about y
