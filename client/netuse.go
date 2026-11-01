@@ -70,7 +70,8 @@ func (g *game) useNet() {
 	w.Byte(0)
 	w.Byte(0)
 	n.c.send(w)
-	g.startUsing(held) // a sword goes up, a bow is drawn, a meal begins: until the release goes out
+	// A sword goes up, a bow is drawn, a meal begins: until the release goes out.
+	g.startUsing(held)
 	if held.ID == 346 { // ItemFishingRod swings the arm as it casts and as it reels in
 		if n.hookOf(n.eid) == nil { // casting (a hook that is out is reeled in, silently): the client plays the cast
 			g.sound("random.bow", g.pos, 0.5, 0.4/(rnd()*0.4+0.8))
