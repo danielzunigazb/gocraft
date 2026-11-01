@@ -41,6 +41,7 @@ type options struct {
 	Keys           map[string]int     // action id -> LWJGL code
 	Packs          []string           // enabled resource packs, lowest priority first
 	ViewBobbing    bool               // the view and the hand sway with each step
+	FlatLight      bool               // smooth lighting off (options.txt's ao:0): one light for each face
 	Server         string             // the last server joined
 	SoundVolume    map[string]float32 // soundCategory_*: master, music, record, weather, block, hostile, neutral, player, ambient, each 0..1
 	MSAClientID    string             // the client ID of the Azure application used to sign in (public, not a secret)
@@ -94,6 +95,8 @@ func parseOptions(r *bufio.Scanner, o options) options {
 			o.VSync = v == "true"
 		case "fancyGraphics":
 			o.Fancy = v == "true"
+		case "ao": // 0 off, 1 minimum, 2 maximum: the game's own file, and a true or false of an older one
+			o.FlatLight = v == "0" || v == "false"
 		case "viewBobbing":
 			o.ViewBobbing = v == "true"
 		case "dynamicLights":
@@ -164,8 +167,8 @@ func loadOptions(importFrom string) options {
 
 func (o options) save() error {
 	var b strings.Builder
-	fmt.Fprintf(&b, "fov:%g\nmouseSensitivity:%g\ninvertYMouse:%v\ngamma:%g\nrenderDistance:%d\nguiScale:%d\nenableVsync:%v\nfancyGraphics:%v\ndynamicLights:%v\nviewBobbing:%v\n",
-		(o.FOV-30)/80, o.Sensitivity, o.InvertY, o.Gamma, o.RenderDistance, o.GuiScale, o.VSync, o.Fancy, o.DynamicLights, o.ViewBobbing)
+	fmt.Fprintf(&b, "fov:%g\nmouseSensitivity:%g\ninvertYMouse:%v\ngamma:%g\nrenderDistance:%d\nguiScale:%d\nenableVsync:%v\nfancyGraphics:%v\ndynamicLights:%v\nviewBobbing:%v\nao:%d\n",
+		(o.FOV-30)/80, o.Sensitivity, o.InvertY, o.Gamma, o.RenderDistance, o.GuiScale, o.VSync, o.Fancy, o.DynamicLights, o.ViewBobbing, 2-2*boolIntOpt(o.FlatLight))
 	packs, _ := json.Marshal(append([]string{}, o.Packs...))
 	fmt.Fprintf(&b, "resourcePacks:%s\n", packs)
 	if o.Server != "" {
@@ -266,4 +269,11 @@ var fallbackNames = map[glfw.Key]string{
 	glfw.KeyUp: "UP", glfw.KeyDown: "DOWN", glfw.KeyLeft: "LEFT", glfw.KeyRight: "RIGHT", glfw.KeyCapsLock: "CAPITAL",
 	glfw.KeyF1: "F1", glfw.KeyF2: "F2", glfw.KeyF3: "F3", glfw.KeyF4: "F4", glfw.KeyF5: "F5", glfw.KeyF6: "F6", glfw.KeyF7: "F7", glfw.KeyF8: "F8",
 	glfw.KeyF9: "F9", glfw.KeyF10: "F10", glfw.KeyF11: "F11", glfw.KeyF12: "F12", glfw.KeyHome: "HOME", glfw.KeyEnd: "END", glfw.KeyInsert: "INSERT", glfw.KeyDelete: "DELETE",
+}
+
+func boolIntOpt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }

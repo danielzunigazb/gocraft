@@ -52,6 +52,8 @@ func sortedWithColours(keys []string, cols [][4]uint8) []string {
 // coordinates, same light and tint (within one colour step of rounding). Leaves differ on purpose
 // in fast graphics, so this compares the fancy setting.
 func TestFastMesherMatchesTheReference(t *testing.T) {
+	smoothLighting.Store(false) // the reference mesher has one light for each face: the game's smooth lighting off
+	defer smoothLighting.Store(true)
 	g := testWorldGame(t, "New World")
 	m := &mesher{}
 	var md meshData
@@ -155,6 +157,8 @@ func TestPaddedColumnMatchesTheWorld(t *testing.T) {
 }
 
 func TestFacesTakeTheLightOfTheBlockTheyFace(t *testing.T) {
+	smoothLighting.Store(false) // flat lighting: smooth lighting averages the cells around each corner instead
+	defer smoothLighting.Store(true)
 	g := testGame(t)
 	// A stone block on the flat world's surface, with its own light made distinct from its neighbours.
 	g.world.SetBlock(2, 4, 2, 1<<4)

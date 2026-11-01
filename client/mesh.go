@@ -121,6 +121,7 @@ func (m *mesher) mesh(w *world.World, cp world.ChunkPos, res *resources, fancy b
 		return p.Blocks[world.PadIndex(cx+int(dx), y, cz+int(dz))]
 	}
 
+	smooth := smoothLighting.Load()
 	lo, hi := 16, -1
 	for sy := 0; sy < 16; sy++ {
 		out.solidSec[sy], out.waterSec[sy] = int32(len(out.solid)), int32(len(out.water))
@@ -187,6 +188,10 @@ func (m *mesher) mesh(w *world.World, cp world.ChunkPos, res *resources, fancy b
 								tint, tinted = res.tintFor(id, int(st&15), biome), true
 							}
 							t = tint
+						}
+						if smooth && q.cull >= 0 && blockLum[id&255] == 0 && y+dirDY[q.cull] >= 0 && y+dirDY[q.cull] <= 255 && wholeFace(q, q.cull) {
+							out.solid = smoothFace(out.solid, res, p, idx, y, q, wx, float32(y), wz, t)
+							continue
 						}
 						out.solid = emitQuad(out.solid, q, wx, float32(y), wz, t, faceLight(p, idx, y, q, own))
 					}

@@ -251,6 +251,7 @@ func Run(opt Options) error {
 	g.saves = opt.SavesDir
 	g.stream = newStreamer()
 	g.opts = opts
+	smoothLighting.Store(!opts.FlatLight)
 	if soundWanted(opt, *noSound, os.Getenv("GOCRAFT_NO_AUDIO")) { // a screenshot or a benchmark makes no noise
 		g.snd = newSoundSystem(opt.JarPath, func(c string) float32 { return g.opts.soundVolume(c) })
 		defer g.snd.close()

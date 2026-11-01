@@ -220,6 +220,13 @@ type Padded struct {
 	Solid [16]int32
 }
 
+func boolInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}
+
 // PadIndex is the position of block x, y, z (relative to the column, x and z in -1..16) in Padded.
 func PadIndex(x, y, z int) int { return (y*18+z+1)*18 + x + 1 }
 
@@ -230,6 +237,11 @@ func (w *World) FillPadded(cp ChunkPos, p *Padded) {
 	nb := [4]*Chunk{
 		w.get(ChunkPos{X: cp.X - 1, Z: cp.Z}), w.get(ChunkPos{X: cp.X + 1, Z: cp.Z}),
 		w.get(ChunkPos{X: cp.X, Z: cp.Z - 1}), w.get(ChunkPos{X: cp.X, Z: cp.Z + 1}),
+	}
+	// The four columns diagonal to this one give the corners of the padding, which smooth lighting reads.
+	diag := [4]*Chunk{
+		w.get(ChunkPos{X: cp.X - 1, Z: cp.Z - 1}), w.get(ChunkPos{X: cp.X + 1, Z: cp.Z - 1}),
+		w.get(ChunkPos{X: cp.X - 1, Z: cp.Z + 1}), w.get(ChunkPos{X: cp.X + 1, Z: cp.Z + 1}),
 	}
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -268,6 +280,12 @@ func (w *World) FillPadded(cp ChunkPos, p *Padded) {
 			n, s := y<<8|15<<4|x, y<<8|x
 			p.Blocks[PadIndex(x, y, -1)], p.Light[PadIndex(x, y, -1)] = nb[2].Blocks[n], light(nb[2], n)
 			p.Blocks[PadIndex(x, y, 16)], p.Light[PadIndex(x, y, 16)] = nb[3].Blocks[s], light(nb[3], s)
+		}
+		// The corners: the column of the diagonal neighbour nearest to this one.
+		for k, c := range [4][2]int{{-1, -1}, {16, -1}, {-1, 16}, {16, 16}} {
+			x, z := 15*boolInt(c[0] < 0), 15*boolInt(c[1] < 0) // -1 is the neighbour's last row or column, 16 its first
+			i := y<<8 | z<<4 | x
+			p.Blocks[PadIndex(c[0], y, c[1])], p.Light[PadIndex(c[0], y, c[1])] = diag[k].Blocks[i], light(diag[k], i)
 		}
 	}
 	for i := 0; i < 256; i++ {
