@@ -75,6 +75,7 @@ func (e *netEntity) moveTo(t vec3) {
 
 // tickEnts moves the entities one tick towards where the server put them, as the game does.
 func (g *game) tickEnts() {
+	g.tickSpawners()
 	if g.flash > 0 {
 		g.flash-- // World.lastLightningBolt counts down; a bolt that is still striking puts it back to 2
 	}

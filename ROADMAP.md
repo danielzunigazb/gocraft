@@ -20,7 +20,8 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 - [x] Rayos (0x2C): forma exacta de RenderLightningBolt, trueno, golpes repetidos y destello del cielo
 - [ ] Correas y monturas
 - [x] Cabezas (calaveras de esqueleto, wither, zombi, jugador con su skin y creeper) como bloque, por 0x35
-- [ ] Banners y spawners (0x35); pistones
+- [x] Spawners (0x35, acción 1): el mob gira en la jaula como MobSpawnerBaseLogic y TileEntityMobSpawnerRenderer
+- [ ] Banners (0x35, acción 6); pistones
 - [x] Armor stands visibles: modelo exacto, pose, brazos, plato, pequeños, armadura y objeto en la mano
 - [x] Calaveras sobre la cabeza de un armor stand, a 1.1875 de tamaño
 - [ ] Bloques y objetos que no son calaveras sobre la cabeza de un armor stand o de un jugador

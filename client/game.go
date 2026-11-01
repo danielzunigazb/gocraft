@@ -171,6 +171,7 @@ type game struct {
 	keyHeld                    func(action string) bool     // tests: which keys are down when there is no window
 	signs                      map[[3]int32]*[4][]styledRun // the text of the signs, by block
 	skulls                     map[[3]int32]*skullEntity    // the heads a server put on blocks
+	spawners                   map[[3]int32]*spawnerState   // the mobs turning in spawner cages
 	flash                      int                          // ticks left of the sky's flash from a lightning bolt
 	entMobs                    entityMesh
 	debug                      bool
@@ -407,6 +408,9 @@ func (g *game) changeBlock(x, y, z int32, state uint16, fx bool) {
 	}
 	if g.skulls != nil && state>>4 != idSkull { // and a skull its head
 		delete(g.skulls, [3]int32{x, y, z})
+	}
+	if g.spawners != nil && state>>4 != idSpawner { // and a spawner its mob
+		delete(g.spawners, [3]int32{x, y, z})
 	}
 	// Changing a block also changes the light around it: every column the light touched is meshed again.
 	for _, c := range g.world.SetBlockLit(x, y, z, state) {

@@ -89,6 +89,10 @@ func num(v any) int {
 
 // netBlockEntity is Update Block Entity: only the skull (action 4) is drawn.
 func (g *game) netBlockEntity(pos [3]int32, action byte, nbt []byte) {
+	if action == 1 { // a spawner: the mob inside
+		g.netSpawner(pos, nbt)
+		return
+	}
 	if action != 4 {
 		return
 	}

@@ -922,7 +922,7 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 		x, y, z := proto.UnpackPos(r.Long())
 		action := r.Byte()
 		nbt := append([]byte(nil), r.Rest()...)
-		if r.Err() != nil || action != 4 {
+		if r.Err() != nil || action != 4 && action != 1 {
 			return nil
 		}
 		return func(g *game) { g.netBlockEntity([3]int32{x, y, z}, action, nbt) }
@@ -1389,7 +1389,7 @@ func (g *game) netRespawn(d int, mode byte) {
 	n.received = map[world.ChunkPos]bool{}
 	n.remote = map[int32]*remotePlayer{}
 	n.ents, n.items, n.pickups = nil, nil, nil
-	g.damage, g.signs, g.skulls = nil, nil, nil
+	g.damage, g.signs, g.skulls, g.spawners = nil, nil, nil, nil
 	g.closeServerWindow(false)
 	g.world = world.NewFrom(func(world.ChunkPos) *world.Chunk { return nil })
 	g.world.SetLightRules(g.res.light)

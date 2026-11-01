@@ -38,7 +38,7 @@
       "name": "Bloques y entidades-bloque",
       "weight": 12.2,
       "percent": 25,
-      "done": "colisiones, dureza y herramientas, cofres, hornos, carteles, notas, apertura de tapas",
+      "done": "colisiones, dureza y herramientas, cofres, hornos, carteles, notas, apertura de tapas, cabezas y spawners",
       "missing": "flujo de fluidos, cultivos, fuego, redstone, pistones, ticks aleatorios"
     },
     {

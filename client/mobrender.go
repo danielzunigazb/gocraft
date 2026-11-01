@@ -25,6 +25,7 @@ func (g *game) drawMobs() {
 	g.emitChests(groups)
 	g.emitSigns(groups)
 	g.emitSkulls(groups)
+	g.emitSpawners(groups)
 	g.emitBolts(groups)
 	if len(g.mobs) == 0 && len(g.arrows) == 0 && g.perspective == 0 && (g.net == nil || len(g.net.remote) == 0 && len(g.net.ents) == 0) && len(groups) == 0 {
 		return

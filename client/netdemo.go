@@ -316,6 +316,12 @@ func (g *game) headsDemo() {
 		g.setBlock(p[0], p[1], p[2], idSkull<<4|2) // facing north, against the wall to its south
 		g.skulls[p] = &skullEntity{typ: typ}
 	}
+	g.spawners = map[[3]int32]*spawnerState{}
+	for i, mobName := range []string{"Zombie", "Creeper", "Pig"} { // spawner cages with a mob turning in each
+		p := [3]int32{bx - 3 + int32(i)*3, by, wallZ - 3}
+		g.setBlock(p[0], p[1], p[2], idSpawner<<4)
+		g.spawners[p] = &spawnerState{mob: mobName, rot: float32(i) * 7, prevRot: float32(i)*7 - 4.5}
+	}
 	face := g.yawDeg() + 180
 	for i, d := range []struct {
 		typ   int

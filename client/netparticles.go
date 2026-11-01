@@ -572,6 +572,10 @@ func (g *game) netBlockAction(p [3]int32, id, param byte, blk int32) {
 				be.viewers = int(param)
 			}
 		}
+	case idSpawner:
+		if id == 1 {
+			g.spawnerEvent(p)
+		}
 	case 25: // note block
 		if int(id) >= len(noteInstruments) {
 			return
