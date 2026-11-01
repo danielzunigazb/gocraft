@@ -19,7 +19,8 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 - [ ] Cabezas, banners y spawners (0x35); pistones
 - [ ] Armor stands visibles, equipo de los mobs, cabeza grande de los bebés
 - [ ] Modelos: caballo, ocelote, ghast, guardián, magma cube, snowman
-- [ ] Borde del mundo (0x44), mapas (0x34), remolino de poción lanzada
+- [x] Borde del mundo (0x44), dibujado con mezcla alfa normal (la aditiva de vanilla dio colores erróneos en headless)
+- [ ] Mapas (0x34), remolino de poción lanzada
 
 ## Ventanas e inventario
 - [x] Motor de clics único (modos 0-6) e inventario por servidores ajenos (⚠)
@@ -29,7 +30,7 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 - [ ] Inventario creativo por la misma vía
 
 ## Interfaz
-- [x] Scoreboard (lista, lateral y bajo el nombre), tab con cabeceras, títulos, skins
+- [x] Scoreboard (lista con números o corazones, lateral y bajo el nombre), tab con cabeceras, títulos, skins
 - [x] Autocompletado con Tab
 - [ ] Cursiva dibujada (el parser ya la lee), editor de carteles (0x36), estadísticas (0x37)
 - [ ] Resource packs: hoy se rechazan

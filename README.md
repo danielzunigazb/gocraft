@@ -47,7 +47,7 @@ xvfb-run -a ./gocraft -demo -screen netmobs -look 0,18 -screenshot /tmp/x.png
 ```
 
 `-demo` pone bloques de ejemplo y `-screen` elige la escena: `netchat`, `netmenu`, `netfish`,
-`netheld`, `netitems`, `netmobs`, `netparticles`, `netboss`, `cracks`, `signs`, `drag`,
+`netheld`, `netitems`, `netmobs`, `netparticles`, `netboss`, `netborder`, `cracks`, `signs`, `drag`,
 `survival`, `inventory`, `title`... Siempre con `-demo` las que empiezan por `net`.
 
 ## Pruebas
