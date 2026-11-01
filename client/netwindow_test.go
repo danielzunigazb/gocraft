@@ -863,7 +863,7 @@ func TestServerTeleportKeepsTheMotionOfRelativeAxes(t *testing.T) {
 		w.Byte(flags)
 		decodeFrame(t, w, nil)(g)
 	}
-	pkt(0x01|0x10, 2, 70, 30, 90, 40) // x and the yaw relative; y, z and the pitch absolute
+	pkt(0x01|0x08, 2, 70, 30, 90, 40) // x and the yaw (Y_ROT, 0x08) relative; y, z and the pitch absolute
 	if g.feet != (vec3{12, 70, 30}) {
 		t.Fatalf("feet %v, want 12 70 30", g.feet)
 	}
@@ -880,6 +880,10 @@ func TestServerTeleportKeepsTheMotionOfRelativeAxes(t *testing.T) {
 	pkt(0, 1, 2, 3, 0, 0)
 	if g.feet != (vec3{1, 2, 3}) || g.vel != (vec3{}) {
 		t.Fatalf("absolute: feet %v motion %v", g.feet, g.vel)
+	}
+	pkt(0x10, 1, 2, 3, 30, 10) // the pitch (X_ROT, 0x10) relative, the yaw absolute
+	if !near(g.yaw, float32(30*math.Pi/180), 1e-5) || !near(g.pitch, float32(10*math.Pi/180), 1e-5) {
+		t.Fatalf("pitch relative: yaw %v pitch %v", g.yaw, g.pitch)
 	}
 }
 

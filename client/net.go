@@ -711,15 +711,17 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 			g.snapView(p, vec3{x, y, z})
 			g.feet = vec3{x, y, z}
 			g.prevFeet = g.feet
-			if flags&8 != 0 { // the angles are relative too: added to where the player looks
-				g.pitch += pitch * math.Pi / 180
-			} else {
-				g.pitch = pitch * math.Pi / 180
-			}
-			if flags&16 != 0 {
+			// The angles may be relative too, added to where the player looks: 0x08 is the yaw (EnumFlags.Y_ROT, the
+			// turn about the y axis) and 0x10 the pitch (X_ROT).
+			if flags&8 != 0 {
 				g.yaw += yaw * math.Pi / 180
 			} else {
 				g.yaw = yaw * math.Pi / 180
+			}
+			if flags&16 != 0 {
+				g.pitch += pitch * math.Pi / 180
+			} else {
+				g.pitch = pitch * math.Pi / 180
 			}
 			g.fall = 0
 			// handlePlayerPosLook answers at once with where the player now is, on the ground or not.
