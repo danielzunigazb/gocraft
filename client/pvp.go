@@ -14,6 +14,7 @@ import (
 // pvpState is what the game keeps for fighting: the mouse buttons as the game takes them in (clicks.go).
 type pvpState struct {
 	clicks clickState
+	use    itemUse // the item in use on a third-party server (itemuse.go)
 }
 
 // rayBoxDist is how far, squared, along the player's view a box is hit within reach 3, and whether
@@ -123,19 +124,11 @@ func (g *game) sendActions() {
 		n.c.send(w)
 		n.sentSneak = g.sneaking
 	}
-	if using := g.bowTicks > 0 || g.eating > 0; using != n.sentUsing && g.thirdParty() {
-		if !using { // PlayerControllerMP.onStoppedUsingItem: the server shoots the arrow, or stops the meal
-			w := newPacket(0x07)
-			w.Byte(5)
-			w.Long(0)
-			w.Byte(0)
-			n.c.send(w)
-		}
-		n.sentUsing = using
+	if g.thirdParty() { // the item in use goes out with the click and the release (itemuse.go)
+		return
 	}
 	if g.blocking != n.sentBlocking {
-		if g.blocking && g.thirdParty() { // the click itself already went out (useNet)
-		} else if g.blocking { // right click with the sword in the air
+		if g.blocking { // right click with the sword in the air
 			w := newPacket(0x08)
 			w.Long(packPos(-1, -1, -1))
 			w.Byte(255)
@@ -174,6 +167,8 @@ func (g *game) netVelocity(vx, vy, vz int16) {
 func (g *game) netStatus(eid int32, status byte) {
 	if eid == g.net.eid { // the player's own: the view shakes and it hurts
 		switch status {
+		case 9: // the server finished the meal or the drink
+			g.useFinished()
 		case 2:
 			g.hurtTime, g.hurtResist = 10, 20
 			g.playerHurtSound(false)

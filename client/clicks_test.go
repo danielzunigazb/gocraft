@@ -128,8 +128,16 @@ func TestRivalBeyondReachIsAMissNotABlock(t *testing.T) {
 // While an item is in use (here a sword held up) the attack presses are thrown away: a vanilla client never sends
 // an attack while it blocks, and a server's anticheat takes one that does for an "autoblock".
 func TestNoAttackWhileBlocking(t *testing.T) {
-	g, c, _ := duel(t, 2.2)
-	g.blocking = true
+	g, c, held := duel(t, 0)
+	held["use"] = true
+	g.pressButton(g.opts.Keys["use"]) // the sword goes up
+	g.tick(input{})
+	if !g.blocking {
+		t.Fatal("the right click did not put the sword up")
+	}
+	at := vec3{0.5, 4, 2.2}
+	g.net.remote[9] = &remotePlayer{eid: 9, name: "Rival", pos: at, prev: at, target: at}
+	drain(t, c)
 	g.pressButton(g.opts.Keys["attack"])
 	g.tick(input{})
 	if got := ids(t, c); index(got, 0x0A) >= 0 || index(got, 0x02) >= 0 {

@@ -414,31 +414,31 @@ func TestServerAllowsFlight(t *testing.T) {
 
 // On a server that is not gocraft's own, letting go of a drawn bow shoots nothing here: the server is told.
 func TestBowReleaseIsLeftToTheServer(t *testing.T) {
-	g, c := windowGame(t)
+	g, c, held := duel(t, 0)
 	g.inv[0] = slot{ID: 261, N: 1}
 	g.inv[1] = slot{ID: 262, N: 64}
-	g.sel = 0
-	g.pos = vec3{0.5, 5.6, 0.5}
-	g.net.sentUsing = true
-	g.bowTicks = 20
-	g.tickBow() // the use button is not held: the bow is let go
+	held["use"] = true
+	g.pressButton(g.opts.Keys["use"]) // drawn by the click, as the game's sendUseItem puts it in use
+	for i := 0; i < 20; i++ {
+		g.tick(input{})
+	}
+	if g.bowTicks != 20 {
+		t.Fatalf("bowTicks %d after 20 ticks drawn", g.bowTicks)
+	}
+	drain(t, c)
+	held["use"] = false // let go: the next tick sends the release and the server shoots
+	g.tick(input{})
 	if len(g.arrows) != 0 {
 		t.Fatal("an arrow was shot here on a server that shoots its own")
 	}
 	if g.bowTicks != 0 {
 		t.Fatalf("bowTicks %d after the release", g.bowTicks)
 	}
-	g.sendActions()
-	select {
-	case f := <-c.out:
-		id, r, _ := proto.ReadPacket(bufio.NewReader(bytes.NewReader(f)))
-		if id != 0x07 || r.Byte() != 5 {
-			t.Fatalf("sent id 0x%02x, want Release Use Item", id)
-		}
-	default:
-		t.Fatal("no release was sent")
+	if n, sent := releases(t, c); n != 1 {
+		t.Fatalf("sent %#x, want one Release Use Item", sent)
 	}
-	if g.net.sentUsing {
+	g.tick(input{})
+	if n, _ := releases(t, c); n != 0 {
 		t.Fatal("the release is sent again every tick")
 	}
 	// and on gocraft's own server the arrow is the client's

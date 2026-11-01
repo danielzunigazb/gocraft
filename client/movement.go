@@ -149,6 +149,7 @@ func (g *game) tick(in input) {
 	g.ticks++
 	g.applyPendingHit()
 	g.takeClicks() // Minecraft.runTick takes the mouse in before the world, and so the player, moves on
+	g.tickItemUse()
 	g.updateFov()
 	g.tickDamage()
 	y0 := g.feet[1]

@@ -54,6 +54,9 @@ func (g *game) takeClicks() {
 	pos, yaw := g.pos, g.yaw
 	g.pos = g.feet.add(vec3{0, float64(g.eyeOffset()), 0}) // getPositionEyes(1.0): where the last tick ended
 	if g.usingItem() {
+		if g.thirdParty() && !g.keyDown("use") { // PlayerControllerMP.onStoppedUsingItem
+			g.stopUsing()
+		}
 		c.attack, c.use, c.pick = 0, 0, 0
 	} else {
 		if c.headSet {

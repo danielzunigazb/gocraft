@@ -212,10 +212,12 @@ func (g *game) tickActions() {
 		return
 	}
 	was := g.usingItem()
-	g.tickBow()
-	g.tickEating()
-	class, _ := toolOf(g.held())
-	g.blocking = class == "sword" && g.keyDown("use") && g.screen == screenNone
+	if !g.thirdParty() { // a server's item in use is kept by tickItemUse
+		g.tickBow()
+		g.tickEating()
+		class, _ := toolOf(g.held())
+		g.blocking = class == "sword" && g.keyDown("use") && g.screen == screenNone
+	}
 	// As in the game, the click repeats only while no item is in use: a drawn bow is not asked for again.
 	if g.keyDown("use") && g.useDelay == 0 && !(g.thirdParty() && was) {
 		g.useDelay = useDelayTicks

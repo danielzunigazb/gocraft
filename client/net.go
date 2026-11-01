@@ -1332,6 +1332,7 @@ func (g *game) connect(addr, name string) error {
 	g.walkCap, g.flyCap = 0, 0
 	g.abilFlags = 0
 	g.speedsSet, g.sprintTicks = false, 0
+	g.pvp.use = itemUse{}
 	g.titles = titleState{}
 	g.maxHP, g.absorption, g.xpBar, g.xpLevel, g.air = 0, 0, 0, 0, 300
 	g.pos = vec3{0.5, world.SpawnY + eyeHeight, 0.5}
@@ -1404,6 +1405,7 @@ func (g *game) netRespawn(d int, mode byte) {
 	n.transaction0 = 0                    // a new player has a new window
 	n.border = nil                        // and a new world has the default border until the server says otherwise
 	g.speedsSet, g.sprintTicks = false, 0 // a new player entity
+	g.pvp.use = itemUse{}                 // with nothing in use
 	for cp := range n.received {
 		g.forgetMesh(cp)
 	}
@@ -1843,6 +1845,9 @@ func skipPayload(r *proto.Reader, t byte, depth int) bool {
 // setWindowSlot puts a stack in the player's own inventory window: 5 to 8 are the armour, 9 to 35
 // the main inventory and 36 to 44 the hotbar.
 func (g *game) setWindowSlot(i int, s slot) {
+	if i == 36+g.sel { // a new stack in hand: the game's item in use is no longer the one held (itemuse.go)
+		g.pvp.use.replaced = true
+	}
 	switch {
 	case i >= 36 && i <= 44:
 		g.inv[i-36] = s

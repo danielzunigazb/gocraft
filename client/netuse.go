@@ -70,6 +70,7 @@ func (g *game) useNet() {
 	w.Byte(0)
 	w.Byte(0)
 	n.c.send(w)
+	g.startUsing(held) // a sword goes up, a bow is drawn, a meal begins: until the release goes out
 	if held.ID == 346 { // ItemFishingRod swings the arm as it casts and as it reels in
 		if n.hookOf(n.eid) == nil { // casting (a hook that is out is reeled in, silently): the client plays the cast
 			g.sound("random.bow", g.pos, 0.5, 0.4/(rnd()*0.4+0.8))
@@ -141,4 +142,9 @@ func (g *game) interactConsumes(eid int32) bool {
 func (g *game) thirdParty() bool { return g.net != nil && !g.net.gocraft }
 
 // usingItem is whether an item is in use: a bow drawn, food being eaten, a sword held across the chest.
-func (g *game) usingItem() bool { return g.bowTicks > 0 || g.eating > 0 || g.blocking }
+func (g *game) usingItem() bool {
+	if g.thirdParty() {
+		return g.pvp.use.on
+	}
+	return g.bowTicks > 0 || g.eating > 0 || g.blocking
+}
