@@ -119,7 +119,8 @@ type game struct {
 	be                         beState         // chests and furnaces: what they hold
 	chat                       []chatLine
 	chatInput                  string
-	netMsg                     string // the last thing multiplayer had to say: an error, "Connecting..."
+	tab                        chatTab // tab completion of the chat line
+	netMsg                     string  // the last thing multiplayer had to say: an error, "Connecting..."
 	multiAddr, multiName       string
 	multiFocus                 int
 	chatSkip                   bool

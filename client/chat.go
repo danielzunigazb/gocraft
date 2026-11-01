@@ -47,7 +47,7 @@ func (g *game) addChatRuns(rs []styledRun) {
 
 // openChat starts typing a chat line; "/" begins one with the slash in place.
 func (g *game) openChat(prefill string) {
-	g.chatInput = prefill
+	g.chatInput, g.tab = prefill, chatTab{}
 	g.openScreen(screenChat)
 }
 
@@ -62,6 +62,7 @@ func (g *game) onChar(_ *glfw.Window, r rune) {
 	}
 	switch g.screen {
 	case screenChat:
+		g.tab.waiting, g.tab.found = false, false // any other key ends the walk through the answers
 		if len(g.chatInput) < chatMax {
 			g.chatInput += string(r)
 		}
@@ -88,7 +89,12 @@ func (g *game) typingKey(key glfw.Key) bool {
 		case glfw.KeyEnter, glfw.KeyKPEnter:
 			g.sendChat(g.chatInput)
 			g.closeScreen()
+		case glfw.KeyTab:
+			g.tab.waiting = false
+			g.chatTabKey()
+			return true
 		case glfw.KeyBackspace:
+			g.tab.waiting, g.tab.found = false, false
 			if rs := []rune(g.chatInput); len(rs) > 0 {
 				g.chatInput = string(rs[:len(rs)-1])
 			}

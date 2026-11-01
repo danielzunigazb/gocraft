@@ -843,6 +843,19 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 			return nil
 		}
 		return func(g *game) { g.sel = slot } // the next tick tells the server back, as syncCurrentPlayItem does
+	case 0x3A: // tab-complete: what the chat line could continue with
+		n := int(r.VarInt())
+		if r.Err() != nil || n < 0 || n > 4096 {
+			return nil
+		}
+		answers := make([]string, 0, n)
+		for i := 0; i < n && r.Err() == nil; i++ {
+			answers = append(answers, r.String(32767))
+		}
+		if r.Err() != nil {
+			return nil
+		}
+		return func(g *game) { g.netTabComplete(answers) }
 	case 0x24: // block action: a chest's lid, a note block's note
 		x, y, z := proto.UnpackPos(r.Long())
 		id, param := r.Byte(), r.Byte()
