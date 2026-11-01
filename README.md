@@ -32,11 +32,14 @@ pruebas automatizadas que reproducen paquetes contra el cliente, sin servidor re
 - El `client.jar` de Minecraft 1.8.9 (por defecto `~/mc-1.8.9-run/client.jar`; se cambia con `-jar`).
 
 ```sh
-go build -o gocraft ./cmd/gocraft
+make                       # gocraft (el juego) y gocraft-server (el servidor)
+make check                 # go vet y las pruebas
+make release               # dist/gocraft-<versión>-<so>-<arq>.tar.gz con su sha256
 
 ./gocraft                                    # menú: un jugador, multijugador, opciones
 ./gocraft -connect host:25565 -name Jugador  # conexión directa (modo offline)
 ./gocraft -world /ruta/al/mundo              # abrir un mundo 1.8.9
+./gocraft -version                           # la versión del paquete (igual en gocraft-server)
 ```
 
 Los servidores en modo online exigen una cuenta de Microsoft con Minecraft Java y una aplicación de Azure propia;

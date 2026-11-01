@@ -56,4 +56,4 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 - [x] README y ROADMAP
 - [ ] Pruebas que reproduzcan una captura de vanilla contra el cliente
 - [ ] Pasada de rendimiento con el profiler
-- [ ] Build distribuible
+- [x] Build distribuible: `make release` (el juego enlaza GLFW por cgo, así que se compila en la plataforma de destino)

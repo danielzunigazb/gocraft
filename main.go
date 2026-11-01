@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -13,7 +14,11 @@ import (
 	"gocraft/worldgen"
 )
 
+// version is set by the release build (-ldflags "-X main.version=...").
+var version = "dev"
+
 func main() {
+	showVersion := flag.Bool("version", false, "print the version and exit")
 	addr := flag.String("addr", ":25565", "listen address")
 	motd := flag.String("motd", "gocraft 1.8.9", "server list message")
 	view := flag.Int("view", 6, "view distance in chunks")
@@ -22,6 +27,10 @@ func main() {
 	survival := flag.Bool("survival", false, "survival rules: health, player versus player damage, falling (default: creative)")
 	saveDir := flag.String("save", "", "keep the world and the players in this folder (a 1.8.9 world folder): the edited columns and each player's position and inventory")
 	flag.Parse()
+	if *showVersion {
+		fmt.Println("gocraft-server", version)
+		return
+	}
 
 	l, err := net.Listen("tcp", *addr)
 	if err != nil {

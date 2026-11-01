@@ -1,6 +1,7 @@
 # builds
 /gocraft
 /gocraft-server
+/dist/
 *.test
 
 # logs of the vanilla client, with the account's name

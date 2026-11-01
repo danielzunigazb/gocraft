@@ -15,6 +15,9 @@ import (
 	"gocraft/proto"
 )
 
+// version is set by the release build (-ldflags "-X main.version=...").
+var version = "dev"
+
 func main() {
 	home, _ := os.UserHomeDir()
 	jar := flag.String("jar", filepath.Join(home, "mc-1.8.9-run", "client.jar"), "your 1.8.9 client jar (textures are read from it)")
@@ -45,7 +48,12 @@ func main() {
 	hand := flag.String("hand", "", "first-person hand for a screenshot: swing=3,bow=15,eat=10,block")
 	mobs := flag.Bool("mobs", false, "a row of every mob in front of the camera, with -screenshot")
 	persp := flag.Int("persp", 0, "camera for the screenshot: 0 first person, 1 behind, 2 in front")
+	showVersion := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
+	if *showVersion {
+		fmt.Println("gocraft", version)
+		return
+	}
 	if *cpuProfile != "" {
 		f, err := os.Create(*cpuProfile)
 		if err != nil {
