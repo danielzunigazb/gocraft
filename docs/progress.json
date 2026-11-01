@@ -1,0 +1,95 @@
+{
+  "method": "El peso de cada área es su parte del bytecode del client.jar de 1.8.9 (2507 clases, 1.22 MB), agrupado por subsistema a partir de la herencia de las clases. El porcentaje de avance es una estimación del mantenedor, área por área; solo el protocolo se contó paquete a paquete. El total es el promedio ponderado.",
+  "areas": [
+    {
+      "id": "render",
+      "name": "Render",
+      "weight": 18.3,
+      "percent": 50,
+      "done": "mallado por columnas, luz suave, modelos de bloque, 20 modelos de mobs, partículas, cielo, nombres y carteles",
+      "missing": "renderers de caballo, ghast, guardián, wither y dragón; mapas; cuadros; armor stands"
+    },
+    {
+      "id": "entities",
+      "name": "Entidades",
+      "weight": 16.6,
+      "percent": 35,
+      "done": "física y movimiento del jugador, jugadores remotos, items, proyectiles, anzuelo, 20 tipos de mob con IA básica",
+      "missing": "unos 38 tipos de entidad, la mayoría de las 80 metas de IA, minecarts, monturas"
+    },
+    {
+      "id": "client",
+      "name": "Cliente (interfaz, opciones, sonido)",
+      "weight": 15.2,
+      "percent": 50,
+      "done": "HUD, chat con estilos, menús, inventario, opciones, sonido, paquetes de recursos, mundos guardados",
+      "missing": "inventario creativo, editor de carteles, libros, estadísticas"
+    },
+    {
+      "id": "worldgen",
+      "name": "Generación de mundo",
+      "weight": 13.6,
+      "percent": 55,
+      "done": "biomas exactos, terreno al 99.9 %, cuevas, barrancos, nether, end, árboles, minerales, lagos",
+      "missing": "aldeas, fortalezas, minas, templos, monumentos, botín de mazmorras, mesas de arcilla y árboles gigantes"
+    },
+    {
+      "id": "blocks",
+      "name": "Bloques y entidades-bloque",
+      "weight": 12.2,
+      "percent": 25,
+      "done": "colisiones, dureza y herramientas, cofres, hornos, carteles, notas, apertura de tapas",
+      "missing": "flujo de fluidos, cultivos, fuego, redstone, pistones, ticks aleatorios"
+    },
+    {
+      "id": "server",
+      "name": "Servidor integrado y comandos",
+      "weight": 8.2,
+      "percent": 10,
+      "done": "streaming de chunks, jugadores, combate básico, aparición",
+      "missing": "comandos, mobs del lado del servidor, guardado de jugadores"
+    },
+    {
+      "id": "items",
+      "name": "Items, crafteo y contenedores",
+      "weight": 7.3,
+      "percent": 55,
+      "done": "motor de clics (modos 0-6), 111 recetas, ventanas de cofre, horno y mesa",
+      "missing": "encantamientos, yunque, alquimia, pociones, libros, fuegos artificiales"
+    },
+    {
+      "id": "network",
+      "name": "Protocolo de red",
+      "weight": 5.5,
+      "percent": 80,
+      "done": "58 de 74 paquetes servidor→cliente y 22 de 24 cliente→servidor, compresión, login en línea y sin conexión",
+      "missing": "16 paquetes servidor→cliente, 2 cliente→servidor"
+    },
+    {
+      "id": "world",
+      "name": "Núcleo del mundo",
+      "weight": 3.1,
+      "percent": 70,
+      "done": "formato Anvil, iluminación, chunks",
+      "missing": "guardado completo de entidades y estadísticas"
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-10-31",
+      "commit": "d772ecf",
+      "total": 44.5,
+      "areas": {
+        "render": 50,
+        "entities": 35,
+        "client": 50,
+        "worldgen": 55,
+        "blocks": 25,
+        "server": 10,
+        "items": 55,
+        "network": 80,
+        "world": 70
+      }
+    }
+  ]
+}

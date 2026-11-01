@@ -15,14 +15,15 @@ pruebas automatizadas que reproducen paquetes contra el cliente, sin servidor re
 
 1. [Requisitos y uso](#requisitos-y-uso)
 2. [Capturas](#capturas)
-3. [Arquitectura](#arquitectura)
-4. [Cobertura del protocolo](#cobertura-del-protocolo)
-5. [Fidelidad con vanilla](#fidelidad-con-vanilla)
-6. [Diagnóstico de sesiones de red](#diagnóstico-de-sesiones-de-red)
-7. [Pruebas](#pruebas)
-8. [Opciones y flags](#opciones-y-flags)
-9. [Limitaciones conocidas](#limitaciones-conocidas)
-10. [Aviso legal](#aviso-legal)
+3. [Progreso de la reimplementación](#progreso-de-la-reimplementación)
+4. [Arquitectura](#arquitectura)
+5. [Cobertura del protocolo](#cobertura-del-protocolo)
+6. [Fidelidad con vanilla](#fidelidad-con-vanilla)
+7. [Diagnóstico de sesiones de red](#diagnóstico-de-sesiones-de-red)
+8. [Pruebas](#pruebas)
+9. [Opciones y flags](#opciones-y-flags)
+10. [Limitaciones conocidas](#limitaciones-conocidas)
+11. [Aviso legal](#aviso-legal)
 
 ## Requisitos y uso
 
@@ -46,6 +47,11 @@ el procedimiento está en [ACCOUNT.md](ACCOUNT.md). El proyecto no incluye ningu
 Generadas con las escenas de demostración del cliente (véase [Escenas de demostración](#escenas-de-demostración)).
 Los textos y los nombres son de ejemplo.
 
+Sin ningún paquete de recursos activo, el cliente carga las texturas originales de 1.8.9 desde el `client.jar`.
+Estas capturas se tomaron con un paquete de recursos de terceros activado (de 8x), así que las texturas no son
+las originales. Los paquetes se leen de la carpeta indicada con `-packs` y se activan en `options.txt`
+(`resourcePacks`) o en la pantalla de paquetes de recursos del cliente.
+
 | | |
 |---|---|
 | ![](docs/img/lighting.png)<br>Iluminación suave con oclusión ambiental | ![](docs/img/mobs.png)<br>Modelos de mobs de servidor |
@@ -53,6 +59,32 @@ Los textos y los nombres son de ejemplo.
 | ![](docs/img/items.png)<br>Items en el suelo y orbes de experiencia | ![](docs/img/signs.png)<br>Carteles con texto y color |
 | ![](docs/img/cracks.png)<br>Diez estados de picado | ![](docs/img/bossbar.png)<br>Barra de jefe y *scoreboard* lateral |
 | ![](docs/img/tablist.png)<br>Lista de jugadores con cabecera y pie | |
+
+## Progreso de la reimplementación
+
+<!-- progress:start -->
+
+**Avance global: 44 %** `█████████████░░░░░░░░░░░░░░░░░`
+
+| Área | Peso | Avance | | Hecho | Pendiente |
+|---|--:|--:|---|---|---|
+| Render | 18.3 % | 50 % | `█████░░░░░` | mallado por columnas, luz suave, modelos de bloque, 20 modelos de mobs, partículas, cielo, nombres y carteles | renderers de caballo, ghast, guardián, wither y dragón; mapas; cuadros; armor stands |
+| Entidades | 16.6 % | 35 % | `████░░░░░░` | física y movimiento del jugador, jugadores remotos, items, proyectiles, anzuelo, 20 tipos de mob con IA básica | unos 38 tipos de entidad, la mayoría de las 80 metas de IA, minecarts, monturas |
+| Cliente (interfaz, opciones, sonido) | 15.2 % | 50 % | `█████░░░░░` | HUD, chat con estilos, menús, inventario, opciones, sonido, paquetes de recursos, mundos guardados | inventario creativo, editor de carteles, libros, estadísticas |
+| Generación de mundo | 13.6 % | 55 % | `██████░░░░` | biomas exactos, terreno al 99.9 %, cuevas, barrancos, nether, end, árboles, minerales, lagos | aldeas, fortalezas, minas, templos, monumentos, botín de mazmorras, mesas de arcilla y árboles gigantes |
+| Bloques y entidades-bloque | 12.2 % | 25 % | `██░░░░░░░░` | colisiones, dureza y herramientas, cofres, hornos, carteles, notas, apertura de tapas | flujo de fluidos, cultivos, fuego, redstone, pistones, ticks aleatorios |
+| Servidor integrado y comandos | 8.2 % | 10 % | `█░░░░░░░░░` | streaming de chunks, jugadores, combate básico, aparición | comandos, mobs del lado del servidor, guardado de jugadores |
+| Items, crafteo y contenedores | 7.3 % | 55 % | `██████░░░░` | motor de clics (modos 0-6), 111 recetas, ventanas de cofre, horno y mesa | encantamientos, yunque, alquimia, pociones, libros, fuegos artificiales |
+| Protocolo de red | 5.5 % | 80 % | `████████░░` | 58 de 74 paquetes servidor→cliente y 22 de 24 cliente→servidor, compresión, login en línea y sin conexión | 16 paquetes servidor→cliente, 2 cliente→servidor |
+| Núcleo del mundo | 3.1 % | 70 % | `███████░░░` | formato Anvil, iluminación, chunks | guardado completo de entidades y estadísticas |
+
+El peso de cada área es su parte del bytecode del client.jar de 1.8.9 (2507 clases, 1.22 MB), agrupado por subsistema a partir de la herencia de las clases. El porcentaje de avance es una estimación del mantenedor, área por área; solo el protocolo se contó paquete a paquete. El total es el promedio ponderado.
+
+| Fecha | Commit | Avance global |
+|---|---|--:|
+| 2026-10-31 | `d772ecf` | 44.5 % |
+
+<!-- progress:end -->
 
 ## Arquitectura
 
