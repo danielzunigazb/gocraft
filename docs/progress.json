@@ -5,7 +5,7 @@
       "id": "render",
       "name": "Render",
       "weight": 18.3,
-      "percent": 51,
+      "percent": 54,
       "done": "mallado por columnas, luz suave, modelos de bloque, 22 modelos de mobs, partículas, cielo, nombres y carteles, mapas en item frames",
       "missing": "renderers de caballo, ocelote, guardián, snowman, wither y dragón; mapa en la mano"
     },
@@ -13,7 +13,7 @@
       "id": "entities",
       "name": "Entidades",
       "weight": 16.6,
-      "percent": 37,
+      "percent": 40,
       "done": "física y movimiento del jugador, jugadores remotos, items, proyectiles, anzuelo, armor stands, cuadros, item frames, cabezas, 22 tipos de mob con IA básica",
       "missing": "unos 38 tipos de entidad, la mayoría de las 80 metas de IA, minecarts, monturas"
     },
@@ -21,7 +21,7 @@
       "id": "client",
       "name": "Cliente (interfaz, opciones, sonido)",
       "weight": 15.2,
-      "percent": 50,
+      "percent": 53,
       "done": "HUD, chat con estilos, menús, inventario, opciones, sonido, paquetes de recursos, mundos guardados",
       "missing": "inventario creativo, editor de carteles, libros, estadísticas"
     },
@@ -37,7 +37,7 @@
       "id": "blocks",
       "name": "Bloques y entidades-bloque",
       "weight": 12.2,
-      "percent": 25,
+      "percent": 27,
       "done": "colisiones, dureza y herramientas, cofres, hornos, carteles, notas, apertura de tapas, cabezas y spawners",
       "missing": "flujo de fluidos, cultivos, fuego, redstone, pistones, ticks aleatorios"
     },
@@ -53,7 +53,7 @@
       "id": "items",
       "name": "Items, crafteo y contenedores",
       "weight": 7.3,
-      "percent": 55,
+      "percent": 61,
       "done": "motor de clics (modos 0-6), 111 recetas, ventanas de cofre, horno, mesa, encantamientos, yunque y alquimia",
       "missing": "faro, aldeano, caballo, pociones, libros, fuegos artificiales"
     },
@@ -61,7 +61,7 @@
       "id": "network",
       "name": "Protocolo de red",
       "weight": 5.5,
-      "percent": 80,
+      "percent": 86,
       "done": "62 de 74 paquetes servidor→cliente y 23 de 24 cliente→servidor, compresión, login en línea y sin conexión",
       "missing": "12 paquetes servidor→cliente, 1 cliente→servidor"
     },
@@ -69,7 +69,7 @@
       "id": "world",
       "name": "Núcleo del mundo",
       "weight": 3.1,
-      "percent": 70,
+      "percent": 72,
       "done": "formato Anvil, iluminación, chunks",
       "missing": "guardado completo de entidades y estadísticas"
     }
@@ -93,18 +93,18 @@
     },
     {
       "date": "2026-11-01",
-      "commit": "604c0eb",
-      "total": 45.0,
+      "commit": "97fe831",
+      "total": 48.2,
       "areas": {
-        "render": 51,
-        "entities": 37,
-        "client": 50,
+        "render": 54,
+        "entities": 40,
+        "client": 53,
         "worldgen": 55,
-        "blocks": 25,
-        "server": 10,
-        "items": 55,
-        "network": 80,
-        "world": 70
+        "blocks": 27,
+        "server": 18,
+        "items": 61,
+        "network": 86,
+        "world": 72
       }
     }
   ]
