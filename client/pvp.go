@@ -1,9 +1,11 @@
 package client
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 
+	"gocraft/anvil"
 	"gocraft/proto"
 )
 
@@ -80,12 +82,16 @@ func (g *game) attackEntity(eid int32) {
 // before the click is slowed to 0.6 with the rest of the motion. Paying it in the click itself, between ticks, let
 // a knockback that was still queued replace the slowdown, and the player went on 0.14 blocks ahead of where a
 // server that expected the slowdown put them.
+//
+// The slowdown comes with any knockback the blow gives (attackTargetEntityWithCurrentItem: i is the weapon's
+// Knockback level, plus one when sprinting; if i > 0 the motion is cut to 0.6 and the sprint ends), so a sword
+// with Knockback slows its holder on every blow, sprinting or not.
 func (g *game) applyPendingHit() {
 	if g.net == nil || !g.net.hitPending {
 		return
 	}
 	g.net.hitPending = false
-	if g.sprinting {
+	if g.sprinting || g.knockbackLevel() > 0 {
 		g.vel[0], g.vel[2] = g.vel[0]*0.6, g.vel[2]*0.6
 		g.setSprinting(false)
 	}
@@ -95,6 +101,34 @@ func (g *game) applyPendingHit() {
 	} else if class != "" {
 		g.useDurability(2)
 	}
+}
+
+// knockbackLevel is the Knockback enchantment on the item in hand (EnchantmentHelper.getKnockbackModifier).
+func (g *game) knockbackLevel() int {
+	if g.net == nil || g.held().empty() {
+		return 0
+	}
+	return enchantLevel(g.net.extra[36+g.sel].nbt, enchKnockback)
+}
+
+const enchKnockback = 19
+
+// enchantLevel is the level of an enchantment in an item's tag (its "ench" list of id and lvl), 0 without it.
+func enchantLevel(tag []byte, id int) int {
+	if len(tag) == 0 {
+		return 0
+	}
+	root, err := anvil.ReadNBT(bytes.NewReader(tag))
+	if err != nil {
+		return 0
+	}
+	list, _ := root["ench"].([]any)
+	for _, e := range list {
+		if c, ok := e.(anvil.Compound); ok && num(c["id"]) == id {
+			return num(c["lvl"])
+		}
+	}
+	return 0
 }
 
 // sendActions tells the server when the sprint or the sword's block starts or stops.

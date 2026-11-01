@@ -1,8 +1,10 @@
 package client
 
 import (
+	"bytes"
 	"testing"
 
+	"gocraft/anvil"
 	"gocraft/world"
 )
 
@@ -195,5 +197,32 @@ func TestScreenTakesTheClicks(t *testing.T) {
 	g.tick(input{})
 	if index(ids(t, c), 0x02) >= 0 {
 		t.Fatal("an attack went out through a screen, or right after it with the button still down")
+	}
+}
+
+// enchantedTag is an item tag with one enchantment.
+func enchantedTag(t *testing.T, id, lvl int16) []byte {
+	t.Helper()
+	var b bytes.Buffer
+	if err := anvil.WriteNBT(&b, anvil.Compound{"ench": []any{anvil.Compound{"id": id, "lvl": lvl}}}, ""); err != nil {
+		t.Fatal(err)
+	}
+	return b.Bytes()
+}
+
+// A sword with Knockback slows its holder on every blow, sprinting or not (the knockback the blow gives is what
+// costs the 0.6); a plain sword only when sprinting.
+func TestKnockbackSwordSlowsTheAttacker(t *testing.T) {
+	for _, kb := range []bool{false, true} {
+		g, _, _ := duel(t, 2.2)
+		if kb {
+			g.net.extra[36] = itemExtra{nbt: enchantedTag(t, enchKnockback, 1)}
+		}
+		g.vel = vec3{0, 0, 0.1}
+		g.pressButton(g.opts.Keys["attack"])
+		g.takeClicks()
+		if want := map[bool]float64{false: 0.1, true: 0.06}[kb]; !near(g.vel[2], want, 1e-9) {
+			t.Fatalf("knockback sword %v: motion %v after a blow walking, want %v", kb, g.vel[2], want)
+		}
 	}
 }
