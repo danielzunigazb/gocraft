@@ -446,7 +446,7 @@ func TestMobModelsHaveTheRightShapeAndTexture(t *testing.T) {
 				moved = true
 			}
 		}
-		if !moved && !k.slime && id != "Blaze" && id != "Ghast" { // a slime has no limbs; a blaze and a ghast hover: their rods and tentacles move with the age, not the walk
+		if !moved && !k.slime && id != "Blaze" && id != "Ghast" && id != "SnowMan" { // a slime has no limbs; a blaze and a ghast hover: their rods and tentacles move with the age, not the walk; a snowman's arms turn with its body, not with its steps
 			t.Errorf("%s does not swing its limbs", id)
 		}
 	}

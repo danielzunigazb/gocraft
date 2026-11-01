@@ -156,6 +156,11 @@ func (g *game) emitMob(groups map[string][]vertex, m *mob, partial float32) {
 	groups[tex] = emitModel(groups[tex], k.model, rots, pos, yaw, tilt, tint, light)
 	scaleVerts(groups[tex][start:], pos, sx, sy)
 	g.emitMobGear(groups, m, rots, pos, yaw, tilt, tint, light, sx, sy)
+	if k.id == "SnowMan" && !m.sheared && len(rots) > 0 {
+		start := len(groups["!blocks"])
+		g.emitSnowmanPumpkin(groups, m, rots[0], pos, yaw, light)
+		scaleVerts(groups["!blocks"][start:], pos, sx, sy)
+	}
 	if k.fm != nil && !m.sheared {
 		c := fleece[m.colour&15]
 		start := len(groups[k.fur])

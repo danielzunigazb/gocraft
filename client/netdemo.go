@@ -397,6 +397,26 @@ func (g *game) gearDemo() {
 	}
 }
 
+// snowDemo shows three snowmen: with the pumpkin, without it, and turned away.
+func (g *game) snowDemo() {
+	g.net.ents = nil
+	f := look(g.yaw, 0)
+	right := vec3{-f[2], 0, f[0]}
+	ground := vec3{0, math.Floor(g.feet[1]) - g.feet[1], 0}
+	face := g.yawDeg() + 180
+	for i, d := range []struct {
+		meta map[int]any
+		yaw  float32
+	}{{nil, face}, {map[int]any{16: 0}, face}, {nil, face + 120}} {
+		at := g.feet.add(ground).add(f.scale(3.5)).add(right.scale(float64(i)*1.6 - 1.6))
+		e := &netEntity{eid: int32(980 + i), kind: 97, pos: at, prev: at, target: at}
+		e.mob = newNetMob(97, at, d.yaw, 0, d.yaw)
+		e.mob.m.yaw, e.mob.m.prevYaw = d.yaw, d.yaw
+		e.apply(d.meta)
+		g.net.addEntity(e)
+	}
+}
+
 // leashDemo ties a pig and a sheep to a knot on a fence post, and a cow to a player.
 func (g *game) leashDemo() {
 	g.net.ents = nil

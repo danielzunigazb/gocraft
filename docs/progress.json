@@ -6,15 +6,15 @@
       "name": "Render",
       "weight": 18.3,
       "percent": 54,
-      "done": "mallado por columnas, luz suave, modelos de bloque, 22 modelos de mobs, partículas, cielo, nombres y carteles, mapas en item frames",
-      "missing": "renderers de caballo, ocelote, guardián, snowman, wither y dragón; mapa en la mano"
+      "done": "mallado por columnas, luz suave, modelos de bloque, 23 modelos de mobs, partículas, cielo, nombres y carteles, mapas en item frames",
+      "missing": "renderers de caballo, ocelote, guardián, wither y dragón; mapa en la mano"
     },
     {
       "id": "entities",
       "name": "Entidades",
       "weight": 16.6,
       "percent": 40,
-      "done": "física y movimiento del jugador, jugadores remotos, items, proyectiles, anzuelo, armor stands, cuadros, item frames, cabezas, 22 tipos de mob con IA básica, correas",
+      "done": "física y movimiento del jugador, jugadores remotos, items, proyectiles, anzuelo, armor stands, cuadros, item frames, cabezas, 23 tipos de mob con IA básica, correas",
       "missing": "unos 38 tipos de entidad, la mayoría de las 80 metas de IA, minecarts, monturas y caballos"
     },
     {
