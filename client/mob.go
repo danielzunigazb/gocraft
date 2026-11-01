@@ -54,6 +54,9 @@ type mob struct {
 	colour                int     // sheep: the fleece colour
 	tex                   string  // a texture other than its kind's (a zombie pigman is drawn as a zombie)
 	drawScale             float32 // how much bigger it is drawn than its model; 0 is 1 (a server's baby, a wither skeleton)
+	armor                 [4]slot // what a server dressed it in, boots to helmet (a zombie's, a skeleton's)
+	armorX                [4]itemExtra
+	held                  slot // and what it holds in its right hand
 
 	// what it is doing
 	wanderTicks int

@@ -765,6 +765,12 @@ func parsePacketIn(id int32, r *proto.Reader, dim *atomic.Int32) func(*game) {
 				} else {
 					p.armor[sl-1], p.armorX[sl-1] = it, ex
 				}
+			} else if e := g.net.entity(eid); e != nil && e.mob != nil && sl >= 0 && sl <= 4 {
+				if sl == 0 {
+					e.mob.m.held = it
+				} else {
+					e.mob.m.armor[sl-1], e.mob.m.armorX[sl-1] = it, ex
+				}
 			} else if e := g.net.entity(eid); e != nil && e.stand != nil && sl >= 0 && sl <= 4 {
 				if sl == 0 {
 					e.stand.held, e.stand.heldX = it, ex

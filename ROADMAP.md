@@ -24,7 +24,8 @@ real**: las pruebas reproducen paquetes contra el cliente, no hablan con univers
 - [x] Armor stands visibles: modelo exacto, pose, brazos, plato, pequeños, armadura y objeto en la mano
 - [x] Calaveras sobre la cabeza de un armor stand, a 1.1875 de tamaño
 - [ ] Bloques y objetos que no son calaveras sobre la cabeza de un armor stand o de un jugador
-- [ ] Equipo de los mobs, cabeza grande de los bebés
+- [x] Equipo de los mobs bípedos (armadura en sus dos tamaños, delgada en el esqueleto, y objeto en la mano)
+- [ ] Cabeza grande de los bebés
 - [ ] Modelos: caballo, ocelote, ghast, guardián, magma cube, snowman
 - [x] Borde del mundo (0x44), dibujado con mezcla alfa normal (la aditiva de vanilla dio colores erróneos en headless)
 - [ ] Mapas (0x34), remolino de poción lanzada

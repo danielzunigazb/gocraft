@@ -724,6 +724,9 @@ func (g *game) loop() error {
 		case "netmobs":
 			g.netDemo(false)
 			g.mobsDemo()
+		case "netgear":
+			g.netDemo(false)
+			g.gearDemo()
 		case "netlightning":
 			g.netDemo(false)
 			g.lightningDemo()

@@ -17,7 +17,20 @@ func armorModel(size float32) *mmodel {
 	)
 }
 
+// armorModelThin is ModelSkeleton(size): the same, with the arms and legs two pixels wide, to fit a skeleton's.
+func armorModelThin(size float32) *mmodel {
+	return newModel(64, 32,
+		part(0, 0, 0, boxX(0, 0, -4, -8, -4, 8, 8, 8, size)),
+		part(0, 0, 0, boxX(16, 16, -4, 0, -2, 8, 12, 4, size)),
+		part(-5, 2, 0, boxX(40, 16, -1, -2, -1, 2, 12, 2, size)),
+		part(5, 2, 0, mirrored(boxX(40, 16, -1, -2, -1, 2, 12, 2, size))),
+		part(-2, 12, 0, boxX(0, 16, -1, 0, -1, 2, 12, 2, size)),
+		part(2, 12, 0, mirrored(boxX(0, 16, -1, 0, -1, 2, 12, 2, size))),
+	)
+}
+
 var armorOuter, armorInner = armorModel(1.0), armorModel(0.5)
+var armorOuterThin, armorInnerThin = armorModelThin(1.0), armorModelThin(0.5)
 
 // armorPart says which parts of the model a piece of armour shows, in its slot: boots 0, leggings 1,
 // chestplate 2, helmet 3.
@@ -60,6 +73,7 @@ var armorMasks = func() (m [4][6]bool) {
 // translation that comes with a scale.
 type armorScale struct {
 	split          bool
+	thin           bool // a skeleton's: arms and legs two pixels wide
 	body, head     float64
 	bodyDY, headDY float64
 }
@@ -94,8 +108,14 @@ func emitArmorScaled(groups map[string][]vertex, pieces [4]slot, extras [4]itemE
 			continue
 		}
 		model, key := armorOuter, armorKeys[mat][0]
+		if sc.thin {
+			model = armorOuterThin
+		}
 		if slotN == 1 {
 			model, key = armorInner, armorKeys[mat][1]
+			if sc.thin {
+				model = armorInnerThin
+			}
 		}
 		mask := armorMasks[slotN][:]
 		t := tint

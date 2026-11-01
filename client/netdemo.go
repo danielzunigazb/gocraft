@@ -320,6 +320,37 @@ func (g *game) headsDemo() {
 	}
 }
 
+// gearDemo dresses a row of mobs as a server would: a zombie in iron with a sword, a skeleton in diamond with a bow,
+// a pigman in gold, a wither skeleton with a stone sword and a leather-clad zombie.
+func (g *game) gearDemo() {
+	g.net.ents = nil
+	f := look(g.yaw, 0)
+	right := vec3{-f[2], 0, f[0]}
+	ground := vec3{0, math.Floor(g.feet[1]) - g.feet[1], 0}
+	face := g.yawDeg() + 180
+	set := func(id uint16) slot { return slot{ID: id, N: 1} }
+	for i, d := range []struct {
+		kind  byte
+		meta  map[int]any
+		armor [4]slot
+		held  slot
+	}{
+		{54, nil, [4]slot{set(309), set(308), set(307), set(306)}, set(267)},
+		{51, nil, [4]slot{set(313), set(312), set(311), set(310)}, set(261)},
+		{mobPigZombie, nil, [4]slot{set(317), set(316), set(315), set(314)}, set(283)},
+		{51, map[int]any{13: 1}, [4]slot{}, set(272)},
+		{54, nil, [4]slot{set(301), set(300), set(299), set(298)}, slot{}},
+	} {
+		at := g.feet.add(ground).add(f.scale(4)).add(right.scale(float64(i)*1.5 - 3))
+		e := &netEntity{eid: int32(900 + i), kind: d.kind, pos: at, prev: at, target: at}
+		e.mob = newNetMob(d.kind, at, face, 0, face)
+		e.mob.m.yaw, e.mob.m.prevYaw = face, face
+		e.apply(d.meta)
+		e.mob.m.armor, e.mob.m.held = d.armor, d.held
+		g.net.addEntity(e)
+	}
+}
+
 // lightningDemo strikes three bolts ahead of the player, each of a different shape.
 func (g *game) lightningDemo() {
 	g.net.ents = nil

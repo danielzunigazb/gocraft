@@ -150,11 +150,40 @@ func (g *game) emitMob(groups map[string][]vertex, m *mob, partial float32) {
 	start := len(groups[tex])
 	groups[tex] = emitModel(groups[tex], k.model, rots, pos, yaw, tilt, tint, light)
 	scaleVerts(groups[tex][start:], pos, sx, sy)
+	g.emitMobGear(groups, m, rots, pos, yaw, tilt, tint, light, sx, sy)
 	if k.fm != nil && !m.sheared {
 		c := fleece[m.colour&15]
 		start := len(groups[k.fur])
 		groups[k.fur] = emitModel(groups[k.fur], k.fm, rots, pos, yaw, tilt, [3]uint8{uint8(int(c[0]) * int(tint[0]) / 255), uint8(int(c[1]) * int(tint[1]) / 255), uint8(int(c[2]) * int(tint[2]) / 255)}, light)
 		scaleVerts(groups[k.fur][start:], pos, sx, sy)
+	}
+}
+
+// emitMobGear adds what a server dressed a biped mob in (a zombie's or skeleton's armour) and what it holds in
+// its right hand, on its posed model: the armour is ModelZombie's or ModelSkeleton's at the two sizes, the item
+// hangs from the right arm as it does from a player's.
+func (g *game) emitMobGear(groups map[string][]vertex, m *mob, rots []rot, pos vec3, yaw, tilt float32, tint [3]uint8, light uint8, sx, sy float32) {
+	k := m.kind
+	if (k.id != "Zombie" && k.id != "Skeleton") || len(rots) < 6 {
+		return
+	}
+	var a [12]rot // the armour model's six parts, in the player's numbering
+	a[pHead], a[pBody], a[pRArm], a[pLArm], a[pRLeg], a[pLLeg] = rots[0], rots[1], rots[2], rots[3], rots[4], rots[5]
+	worn := false
+	for _, it := range m.armor {
+		worn = worn || !it.empty()
+	}
+	if worn {
+		tmp := map[string][]vertex{}
+		emitArmorScaled(tmp, m.armor, m.armorX, a[:], pos, yaw, tilt, tint, light, armorScale{body: 1, thin: k.id == "Skeleton"})
+		for key, vs := range tmp {
+			scaleVerts(vs, pos, sx, sy)
+			groups[key] = append(groups[key], vs...)
+		}
+	}
+	if !m.held.empty() && !m.dead() {
+		d := pos.sub(g.camPos)
+		g.emitHeldWith(groups, m.held, func(display mat4) mat4 { return standHeldMatrix(rots[2], yaw, false, display) }, pos, false, 0, false, light, d.dot(d) > 24*24, false)
 	}
 }
 
