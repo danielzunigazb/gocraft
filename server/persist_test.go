@@ -17,6 +17,7 @@ import (
 func TestWorldIsSavedAndReloaded(t *testing.T) {
 	dir := t.TempDir()
 	s := New(Config{SaveDir: dir, Seed: 1234})
+	t.Cleanup(s.Close)
 	s.manual = true
 	stone := uint16(1 << 4)
 	s.setBlock(5, 6, 7, stone) // flat layers stop below y=4: this is air above them
@@ -30,6 +31,7 @@ func TestWorldIsSavedAndReloaded(t *testing.T) {
 		}
 	}
 	s2 := New(Config{SaveDir: dir})
+	t.Cleanup(s2.Close)
 	if got := s2.world.Block(5, 6, 7); got != stone {
 		t.Fatalf("the edit came back as %#x, want %#x", got, stone)
 	}
@@ -60,6 +62,7 @@ func TestWorldIsSavedAndReloaded(t *testing.T) {
 func TestSavingAddsToTheFiles(t *testing.T) {
 	dir := t.TempDir()
 	s := New(Config{SaveDir: dir})
+	t.Cleanup(s.Close)
 	s.manual = true
 	s.setBlock(1, 10, 1, 2<<4)
 	if err := s.Save(); err != nil {
@@ -79,6 +82,7 @@ func TestSavingAddsToTheFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	s2 := New(Config{SaveDir: dir})
+	t.Cleanup(s2.Close)
 	if s2.world.Block(1, 10, 1) != 2<<4 || s2.world.Block(40, 10, 40) != 3<<4 {
 		t.Fatal("the first column was lost when the second was added")
 	}
@@ -88,6 +92,7 @@ func TestSavingAddsToTheFiles(t *testing.T) {
 func TestPlayerDataRoundTrip(t *testing.T) {
 	dir := t.TempDir()
 	s := New(Config{SaveDir: dir, Survival: true})
+	t.Cleanup(s.Close)
 	s.manual = true
 	p := newPlayer(nil, 1, "Alguien")
 	p.x, p.y, p.z, p.yaw, p.pitch = 10.5, 70, -3.25, 90, -15
@@ -150,7 +155,9 @@ func TestPlayerReturnsWhereTheyLeft(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { l.Close() })
-	go New(Config{ViewDistance: 2, SaveDir: dir}).Serve(l)
+	srv := New(Config{ViewDistance: 2, SaveDir: dir})
+	t.Cleanup(srv.Close)
+	go srv.Serve(l)
 	addr := l.Addr().String()
 
 	c, first := rejoin(t, addr, "Viajera")

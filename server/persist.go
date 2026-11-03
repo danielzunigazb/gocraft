@@ -55,6 +55,24 @@ func (st *store) write(level anvil.Compound, chunks map[world.ChunkPos]*world.Ch
 	return anvil.WriteChunks(st.dir, level, chunks)
 }
 
+// close lets go of the opened folder, so its region files can be moved or deleted (Windows will not do that to
+// a file that is open).
+func (st *store) close() {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	if st.save != nil {
+		st.save.Close()
+		st.save = nil
+	}
+}
+
+// Close releases the files the server holds open for reading the saved world; it saves nothing (Save does).
+func (s *Server) Close() {
+	if s.store != nil {
+		s.store.close()
+	}
+}
+
 // markEdited remembers that a column changed, so the next save writes it.
 func (s *Server) markEdited(cp world.ChunkPos) {
 	if s.store == nil {

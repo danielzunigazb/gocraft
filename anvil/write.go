@@ -426,5 +426,5 @@ func replaceFile(path string, b []byte) error {
 	if err := os.WriteFile(tmp, b, 0o644); err != nil {
 		return err
 	}
-	return os.Rename(tmp, path)
+	return renameReplace(tmp, path)
 }
