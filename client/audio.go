@@ -6,9 +6,7 @@ import (
 	"io"
 	"math"
 	"os"
-	"os/exec"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/jfreymuth/oggvorbis"
@@ -16,7 +14,7 @@ import (
 
 // The audio engine: OGG Vorbis files decoded to PCM (in pure Go, on a background thread), a mixer of up
 // to maxVoices sounds at 44.1 kHz stereo with a pitch and a gain per voice, and an output that pipes the
-// mixed PCM to the system's player (paplay, pw-cat or aplay). Nothing here touches the game's state, and
+// mixed PCM to the system's player (paplay, pw-cat or aplay; winmm on Windows). Nothing here touches the game's state, and
 // nothing in the game ever waits on it: a sound that cannot be played right now is dropped.
 //
 // Why a pipe and not a sound library: it needs no cgo and no extra build weight, it talks to whatever
@@ -149,52 +147,31 @@ func (m *mixer) render(out []int16) {
 
 // ---- output ----
 
-// playerCommand is the first audio player of the system that can read raw PCM on its standard input.
-func playerCommand() *exec.Cmd {
-	if p, err := exec.LookPath("paplay"); err == nil {
-		return exec.Command(p, "--raw", "--rate=44100", "--format=s16le", "--channels=2", "--latency-msec=60",
-			"--client-name=gocraft", "--stream-name=gocraft")
-	}
-	if p, err := exec.LookPath("pw-cat"); err == nil {
-		return exec.Command(p, "--playback", "--rate", "44100", "--channels", "2", "--format", "s16", "--latency", "60ms", "-")
-	}
-	if p, err := exec.LookPath("aplay"); err == nil {
-		return exec.Command(p, "-q", "-t", "raw", "-f", "S16_LE", "-r", "44100", "-c", "2")
-	}
-	return nil
+// sink is where the mixed PCM goes (16-bit stereo at mixRate); each platform opens its own in openSink.
+// A sink that does not block in Write (a pipe with room in it) sets paced, and the output thread then
+// keeps it from getting far ahead of the clock itself.
+type sink struct {
+	w     io.Writer
+	close func() // idempotent; also makes a Write that is waiting give up
+	paced bool
+	pid   int // the player process, where there is one (the tests look for its stream)
 }
 
-// output feeds the mixer's PCM to a player process.
+// output feeds the mixer's PCM to a sink.
 type output struct {
-	cmd  *exec.Cmd
-	pipe *os.File
+	sink *sink
 	quit chan struct{}
 	done chan struct{}
 }
 
-// startOutput starts the player and the thread that mixes into it; nil if there is no player.
+// startOutput opens the sink and starts the thread that mixes into it; an error if the system has none.
 func startOutput(m *mixer) (*output, error) {
-	cmd := playerCommand()
-	if cmd == nil {
-		return nil, fmt.Errorf("no audio player found (paplay, pw-cat or aplay)")
-	}
-	r, w, err := os.Pipe()
+	s, err := openSink()
 	if err != nil {
 		return nil, err
 	}
-	cmd.Stdin = r
-	if err := cmd.Start(); err != nil {
-		r.Close()
-		w.Close()
-		return nil, err
-	}
-	r.Close()
-	// A small pipe keeps what is queued short, so a sound is heard soon after it is played; if the system
-	// refuses (F_SETPIPE_SZ), the pacing below keeps it short anyway.
-	syscall.Syscall(syscall.SYS_FCNTL, w.Fd(), 1031, 4096)
-	o := &output{cmd: cmd, pipe: w, quit: make(chan struct{}), done: make(chan struct{})}
+	o := &output{sink: s, quit: make(chan struct{}), done: make(chan struct{})}
 	go o.run(m)
-	go cmd.Wait()
 	return o, nil
 }
 
@@ -227,12 +204,12 @@ func (o *output) run(m *mixer) {
 		for i, v := range pcm {
 			raw[2*i], raw[2*i+1] = byte(v), byte(uint16(v)>>8)
 		}
-		if _, err := o.pipe.Write(raw); err != nil {
+		if _, err := o.sink.w.Write(raw); err != nil {
 			return // the player went away
 		}
 		frames += mixChunk
 		// Never get more than 50 ms ahead of the clock: what is queued is what is heard late.
-		if ahead := time.Duration(frames)*time.Second/mixRate - time.Since(start); ahead > 50*time.Millisecond {
+		if ahead := time.Duration(frames)*time.Second/mixRate - time.Since(start); o.sink.paced && ahead > 50*time.Millisecond {
 			time.Sleep(ahead - 50*time.Millisecond)
 		}
 	}
@@ -243,8 +220,8 @@ func (o *output) close() {
 		return
 	}
 	close(o.quit)
+	o.sink.close() // first, so a Write that is waiting for room lets go
 	<-o.done
-	o.pipe.Close()
 }
 
 // ---- the decoded sounds ----

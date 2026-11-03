@@ -463,7 +463,7 @@ func TestRealOutputIsNotSilent(t *testing.T) {
 	}
 	parec, err1 := exec.LookPath("parec")
 	pactl, err2 := exec.LookPath("pactl")
-	if err1 != nil || err2 != nil || playerCommand() == nil {
+	if err1 != nil || err2 != nil || !audioAvailable() {
 		t.Skip("no PulseAudio tools")
 	}
 	sinkB, err := exec.Command(pactl, "get-default-sink").Output()
@@ -490,7 +490,7 @@ func TestRealOutputIsNotSilent(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	// Find our stream (it exists once the player has been given data) and record just that one.
-	pid := s.out.cmd.Process.Pid
+	pid := s.out.sink.pid
 	s.playUI("step.grass", 0.3, 1)
 	var idx int
 	for i := 0; i < 40; i++ {
