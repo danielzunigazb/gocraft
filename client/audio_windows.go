@@ -59,8 +59,7 @@ type waveHdr struct {
 // waveQueue is how many buffers of mixChunk frames (20 ms each) the driver is given. More of them
 // survive a frame that runs long, fewer make a sound heard sooner after it is played.
 func waveQueue() int {
-	// TODO(human): choose the number of buffers (3 to 8 is the sensible range; 4 means up to 80 ms queued).
-	return 4
+	return 4 // up to 80 ms queued: a sound is heard within a frame or two, and a frame that runs 60 ms long does not cut it
 }
 
 // audioAvailable is whether winmm can be loaded (a device is only known when it is opened).

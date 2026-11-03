@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -241,7 +242,7 @@ func TestStoreIsPrivateAndRoundTrips(t *testing.T) {
 	if err := Save(p, &Stored{RefreshToken: "r", UUID: "u", Name: "n"}); err != nil {
 		t.Fatal(err)
 	}
-	if fi, _ := os.Stat(p); fi.Mode().Perm() != 0o600 {
+	if fi, _ := os.Stat(p); runtime.GOOS != "windows" && fi.Mode().Perm() != 0o600 { // Windows has no mode bits
 		t.Fatalf("mode %v", fi.Mode().Perm())
 	}
 	got, _ := Load(p)
