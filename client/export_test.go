@@ -108,7 +108,7 @@ func TestExportDirIsSafe(t *testing.T) {
 		"../../etc": "/data/gocraft/exports/.._.._etc-20260102-030405",
 		"":          "/data/gocraft/exports/world-20260102-030405",
 	} {
-		if got := exportDir(in, at); got != want {
+		if got := filepath.ToSlash(exportDir(in, at)); got != want {
 			t.Errorf("%q -> %s, want %s", in, got, want)
 		}
 	}

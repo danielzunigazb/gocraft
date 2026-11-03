@@ -10,13 +10,24 @@ import (
 	"gocraft/proto"
 )
 
+// findPython is a Python 3 that runs: "python3" where it exists, else "python" or the launcher "py" (on Windows,
+// "python3" is often only the Microsoft Store's stub, which is found on the path and does not run).
+func findPython() string {
+	for _, name := range []string{"python3", "python", "py"} {
+		if p, err := exec.LookPath(name); err == nil && exec.Command(p, "-I", "-c", "import sys; sys.exit(sys.version_info[0] != 3)").Run() == nil {
+			return p
+		}
+	}
+	return ""
+}
+
 // tools/pvpreport.py reads the lines traceLine and noteLine write. A made-up duel in that format: the player (entity
 // 5) swings and attacks the rival (entity 9) three times, two of which the server answers with the rival hurt; takes
 // two blows; blocks with a tap that is never released and attacks while the sword is up; the server moves it back once
 // after a blow. The report must count all of that.
 func TestPvPReportReadsTheLog(t *testing.T) {
-	py, err := exec.LookPath("python3")
-	if err != nil {
+	py := findPython()
+	if py == "" {
 		t.Skip("no python3")
 	}
 	var b strings.Builder
